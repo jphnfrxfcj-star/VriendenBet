@@ -60,7 +60,7 @@ export const users = [
     .map((participant) => ({ displayName: participant.name, role: 'VIEWER' as const })),
 ]
 
-const ratings = participants.map((participant) => ({
+export const participantRatings = participants.map((participant) => ({
   participantId: participant.id,
   name: participant.name,
   attributes: Object.fromEntries(
@@ -96,7 +96,7 @@ export const tugOfWarWeights = {
   behendigheid: 0.15,
 }
 
-export const tugOfWarOdds = calculateTeamOdds(tugOfWarTeams, ratings, tugOfWarWeights, {}, {
+export const tugOfWarOdds = calculateTeamOdds(tugOfWarTeams, participantRatings, tugOfWarWeights, {}, {
   margin: 0.1,
   sensitivity: 1.25,
 })
