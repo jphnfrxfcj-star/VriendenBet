@@ -1,0 +1,474 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  MIEL
+  VIEWER
+}
+
+enum GameFormat {
+  TEAM
+  INDIVIDUAL
+}
+
+enum EventStatus {
+  DRAFT
+  OPEN_FOR_SELECTION
+  ODDS_READY
+  BET_PLACED
+  IN_PROGRESS
+  SETTLED
+  CANCELLED
+}
+
+enum BetStatus {
+  PENDING
+  WON
+  LOST
+  REFUNDED
+}
+
+enum WalletTransactionType {
+  STARTING_BALANCE
+  BET_STAKE
+  BET_WIN
+  BET_REFUND
+  ADMIN_ADJUSTMENT
+  BONUS
+}
+
+enum GameSuggestionStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  CONVERTED
+}
+
+enum FootballMatchStatus {
+  DRAFT
+  OPEN
+  LOCKED
+  LIVE
+  FINISHED
+  SETTLED
+  CANCELLED
+}
+
+enum FootballMarketStatus {
+  DRAFT
+  OPEN
+  LOCKED
+  SETTLED
+  CANCELLED
+}
+
+enum FootballMarketType {
+  MATCH_RESULT
+  YES_NO
+  OVER_UNDER
+  PLAYER_SPECIAL
+  TEAM_SPECIAL
+  CUSTOM
+}
+
+enum FootballEligibilityType {
+  ALWAYS_ALLOWED
+  POSITIVE_MIEL_ONLY
+  NOT_WHEN_MIEL_PLAYS
+  ADMIN_ONLY
+}
+
+enum SelectionResultStatus {
+  PENDING
+  WON
+  LOST
+  VOID
+}
+
+enum FootballBetBuilderStatus {
+  DRAFT
+  PLACED
+  WON
+  LOST
+  REFUNDED
+  PARTIALLY_VOID
+}
+
+enum SelectionRelationType {
+  INCOMPATIBLE
+  DEPENDENT
+}
+
+model User {
+  id             String           @id @default(cuid())
+  participantId  String?
+  participant    Participant?      @relation(fields: [participantId], references: [id])
+  displayName    String
+  pinHash        String
+  role           UserRole
+  isActive       Boolean          @default(true)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  createdEvents  Event[]          @relation("EventCreator")
+  eventBets      EventBet[]
+  wallet         Wallet?
+  suggestions    GameSuggestion[]
+  oddsOverrides  OddsOverride[]
+  auditLogs      AuditLog[]
+  betBuilders    FootballBetBuilder[]
+
+  @@index([role])
+  @@index([participantId])
+}
+
+model Participant {
+  id          String                 @id @default(cuid())
+  name        String                 @unique
+  nickname    String?
+  photoUrl    String?
+  shirtSize   String?
+  isActive    Boolean                @default(true)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  user        User[]
+  attributes  ParticipantAttribute[]
+  events      EventParticipant[]
+  teamMembers EventTeamMember[]
+}
+
+model Attribute {
+  id          String                  @id @default(cuid())
+  name        String                  @unique
+  description String?
+  minValue    Int                     @default(1)
+  maxValue    Int                     @default(10)
+  isActive    Boolean                 @default(true)
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+  scores      ParticipantAttribute[]
+  templates   GameTemplateAttribute[]
+}
+
+model ParticipantAttribute {
+  participantId String
+  attributeId   String
+  score         Int
+  updatedAt     DateTime    @updatedAt
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  attribute     Attribute   @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+
+  @@id([participantId, attributeId])
+  @@index([attributeId])
+}
+
+model GameTemplate {
+  id                  String                  @id @default(cuid())
+  name                String
+  description         String?
+  rules               String?
+  format              GameFormat
+  teamCount           Int
+  minPlayersPerTeam   Int
+  maxPlayersPerTeam   Int
+  exactTeamSize       Int?
+  defaultMargin       Decimal                 @default(0.10) @db.Decimal(6, 4)
+  defaultSensitivity  Decimal                 @default(1.20) @db.Decimal(6, 4)
+  isActive            Boolean                 @default(true)
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  attributes          GameTemplateAttribute[]
+  events              Event[]
+
+  @@index([isActive])
+  @@index([format])
+}
+
+model GameTemplateAttribute {
+  gameTemplateId String
+  attributeId    String
+  weight         Decimal      @db.Decimal(8, 6)
+  gameTemplate   GameTemplate @relation(fields: [gameTemplateId], references: [id], onDelete: Cascade)
+  attribute      Attribute    @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+
+  @@id([gameTemplateId, attributeId])
+}
+
+model Event {
+  id                  String             @id @default(cuid())
+  gameTemplateId      String
+  title               String
+  description         String?
+  status              EventStatus        @default(DRAFT)
+  opensAt             DateTime?
+  startsAt            DateTime?
+  lockedAt            DateTime?
+  settledAt           DateTime?
+  createdById         String
+  marginOverride      Decimal?           @db.Decimal(6, 4)
+  sensitivityOverride Decimal?           @db.Decimal(6, 4)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  gameTemplate        GameTemplate       @relation(fields: [gameTemplateId], references: [id])
+  createdBy           User               @relation("EventCreator", fields: [createdById], references: [id])
+  participants        EventParticipant[]
+  teams               EventTeam[]
+  bets                EventBet[]
+
+  @@index([status])
+  @@index([startsAt])
+}
+
+model EventParticipant {
+  eventId       String
+  participantId String
+  isAvailable   Boolean     @default(true)
+  event         Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  participant   Participant @relation(fields: [participantId], references: [id])
+
+  @@id([eventId, participantId])
+}
+
+model EventTeam {
+  id                    String            @id @default(cuid())
+  eventId               String
+  name                  String
+  calculatedScore       Decimal?          @db.Decimal(8, 6)
+  calculatedProbability Decimal?          @db.Decimal(8, 6)
+  calculatedOdds        Decimal?          @db.Decimal(8, 2)
+  overriddenOdds        Decimal?          @db.Decimal(8, 2)
+  finalOdds             Decimal?          @db.Decimal(8, 2)
+  isWinningTeam         Boolean           @default(false)
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  event                 Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  members               EventTeamMember[]
+  selectedByBets        EventBet[]
+
+  @@index([eventId])
+}
+
+model EventTeamMember {
+  eventTeamId   String
+  eventId       String
+  participantId String
+  eventTeam     EventTeam   @relation(fields: [eventTeamId], references: [id], onDelete: Cascade)
+  participant   Participant @relation(fields: [participantId], references: [id])
+
+  @@id([eventTeamId, participantId])
+  @@unique([eventId, participantId])
+}
+
+model EventBet {
+  id               String        @id @default(cuid())
+  eventId          String
+  mielUserId       String
+  selectedTeamId   String
+  stake            Decimal       @db.Decimal(10, 2)
+  oddsAtPlacement  Decimal       @db.Decimal(8, 2)
+  potentialPayout  Decimal       @db.Decimal(10, 2)
+  payout           Decimal?      @db.Decimal(10, 2)
+  status           BetStatus     @default(PENDING)
+  placedAt         DateTime      @default(now())
+  settledAt        DateTime?
+  event            Event         @relation(fields: [eventId], references: [id])
+  mielUser         User          @relation(fields: [mielUserId], references: [id])
+  selectedTeam     EventTeam     @relation(fields: [selectedTeamId], references: [id])
+  transactions     WalletTransaction[]
+
+  @@unique([eventId, mielUserId])
+  @@index([status])
+}
+
+model Wallet {
+  id           String              @id @default(cuid())
+  userId       String              @unique
+  balance      Decimal             @default(1000) @db.Decimal(10, 2)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  user         User                @relation(fields: [userId], references: [id])
+  transactions WalletTransaction[]
+}
+
+model WalletTransaction {
+  id                   String                 @id @default(cuid())
+  walletId             String
+  eventBetId           String?
+  footballBetBuilderId String?
+  amount               Decimal                @db.Decimal(10, 2)
+  type                 WalletTransactionType
+  description          String
+  createdAt            DateTime               @default(now())
+  wallet               Wallet                 @relation(fields: [walletId], references: [id])
+  eventBet             EventBet?              @relation(fields: [eventBetId], references: [id])
+  footballBetBuilder   FootballBetBuilder?    @relation(fields: [footballBetBuilderId], references: [id])
+
+  @@index([walletId, createdAt])
+  @@index([type])
+}
+
+model GameSuggestion {
+  id                         String               @id @default(cuid())
+  submittedByUserId          String
+  title                      String
+  description                String
+  proposedRules              String?
+  proposedFormat             GameFormat?
+  proposedTeamCount          Int?
+  proposedPlayersPerTeam     Int?
+  proposedAttributesJson     Json?
+  status                     GameSuggestionStatus @default(SUBMITTED)
+  adminNotes                 String?
+  createdAt                  DateTime             @default(now())
+  updatedAt                  DateTime             @updatedAt
+  submittedByUser            User                 @relation(fields: [submittedByUserId], references: [id])
+
+  @@index([status])
+}
+
+model OddsOverride {
+  id                 String   @id @default(cuid())
+  entityType         String
+  entityId           String
+  originalOdds       Decimal  @db.Decimal(8, 2)
+  overriddenOdds     Decimal  @db.Decimal(8, 2)
+  reason             String
+  overriddenByUserId String
+  createdAt          DateTime @default(now())
+  overriddenByUser   User     @relation(fields: [overriddenByUserId], references: [id])
+
+  @@index([entityType, entityId])
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  userId       String?
+  action       String
+  entityType   String
+  entityId     String
+  metadataJson Json?
+  createdAt    DateTime @default(now())
+  user         User?    @relation(fields: [userId], references: [id])
+
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+model FootballMatch {
+  id          String               @id @default(cuid())
+  title       String
+  homeTeam    String
+  awayTeam    String
+  venue       String?
+  startsAt    DateTime
+  description String?
+  imageUrl    String?
+  status      FootballMatchStatus  @default(DRAFT)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  markets     FootballMarket[]
+  betBuilders FootballBetBuilder[]
+
+  @@index([status])
+  @@index([startsAt])
+}
+
+model FootballMarket {
+  id              String               @id @default(cuid())
+  footballMatchId String
+  title           String
+  description     String?
+  category        String
+  marketType      FootballMarketType
+  status          FootballMarketStatus @default(DRAFT)
+  sortOrder       Int                  @default(0)
+  closesAt        DateTime?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  footballMatch   FootballMatch        @relation(fields: [footballMatchId], references: [id], onDelete: Cascade)
+  selections      FootballSelection[]
+
+  @@index([footballMatchId, sortOrder])
+  @@index([status])
+}
+
+model FootballSelection {
+  id                 String                         @id @default(cuid())
+  footballMarketId   String
+  label              String
+  line               String?
+  calculatedOdds     Decimal?                       @db.Decimal(8, 2)
+  overriddenOdds     Decimal?                       @db.Decimal(8, 2)
+  finalOdds          Decimal                        @db.Decimal(8, 2)
+  eligibilityType    FootballEligibilityType        @default(ALWAYS_ALLOWED)
+  isManipulable      Boolean                        @default(false)
+  isWinningSelection Boolean                        @default(false)
+  resultStatus       SelectionResultStatus          @default(PENDING)
+  createdAt          DateTime                       @default(now())
+  updatedAt          DateTime                       @updatedAt
+  footballMarket     FootballMarket                 @relation(fields: [footballMarketId], references: [id], onDelete: Cascade)
+  builderSelections  FootballBetBuilderSelection[]
+  relationsA         FootballSelectionRelation[]    @relation("SelectionA")
+  relationsB         FootballSelectionRelation[]    @relation("SelectionB")
+
+  @@index([footballMarketId])
+  @@index([eligibilityType])
+}
+
+model FootballSelectionRelation {
+  id           String                @id @default(cuid())
+  selectionAId String
+  selectionBId String
+  type         SelectionRelationType
+  reason       String?
+  createdAt    DateTime              @default(now())
+  selectionA   FootballSelection      @relation("SelectionA", fields: [selectionAId], references: [id], onDelete: Cascade)
+  selectionB   FootballSelection      @relation("SelectionB", fields: [selectionBId], references: [id], onDelete: Cascade)
+
+  @@unique([selectionAId, selectionBId, type])
+}
+
+model FootballBetBuilder {
+  id               String                        @id @default(cuid())
+  footballMatchId  String
+  mielUserId       String
+  status           FootballBetBuilderStatus      @default(DRAFT)
+  stake            Decimal                       @db.Decimal(10, 2)
+  rawCombinedOdds  Decimal                       @db.Decimal(10, 2)
+  correctionFactor Decimal                       @default(0.90) @db.Decimal(6, 4)
+  calculatedOdds   Decimal                       @db.Decimal(10, 2)
+  overriddenOdds   Decimal?                      @db.Decimal(10, 2)
+  finalOdds        Decimal                       @db.Decimal(10, 2)
+  potentialPayout  Decimal                       @db.Decimal(10, 2)
+  payout           Decimal?                      @db.Decimal(10, 2)
+  placedAt         DateTime?
+  settledAt        DateTime?
+  createdAt        DateTime                      @default(now())
+  updatedAt        DateTime                      @updatedAt
+  footballMatch    FootballMatch                 @relation(fields: [footballMatchId], references: [id])
+  mielUser         User                          @relation(fields: [mielUserId], references: [id])
+  selections       FootballBetBuilderSelection[]
+  transactions     WalletTransaction[]
+
+  @@index([status])
+  @@index([footballMatchId])
+}
+
+model FootballBetBuilderSelection {
+  betBuilderId        String
+  footballSelectionId String
+  oddsAtPlacement     Decimal               @db.Decimal(8, 2)
+  resultStatus        SelectionResultStatus @default(PENDING)
+  betBuilder          FootballBetBuilder     @relation(fields: [betBuilderId], references: [id], onDelete: Cascade)
+  footballSelection   FootballSelection      @relation(fields: [footballSelectionId], references: [id])
+
+  @@id([betBuilderId, footballSelectionId])
+}

@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 155 34% 6%;
+  --foreground: 75 33% 94%;
+  --card: 155 28% 9%;
+  --card-foreground: 75 33% 94%;
+  --popover: 155 28% 9%;
+  --popover-foreground: 75 33% 94%;
+  --primary: 78 93% 57%;
+  --primary-foreground: 152 80% 8%;
+  --secondary: 162 20% 15%;
+  --secondary-foreground: 75 33% 94%;
+  --muted: 162 17% 18%;
+  --muted-foreground: 82 14% 67%;
+  --accent: 37 100% 58%;
+  --accent-foreground: 152 80% 8%;
+  --destructive: 8 76% 57%;
+  --destructive-foreground: 75 33% 94%;
+  --border: 158 18% 22%;
+  --input: 158 18% 22%;
+  --ring: 78 93% 57%;
+  --radius: 8px;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-width: 320px;
+  background:
+    radial-gradient(circle at top left, rgba(200, 242, 74, 0.09), transparent 32rem),
+    linear-gradient(135deg, #061710 0%, #081d16 48%, #11110b 100%);
+  color: hsl(var(--foreground));
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.sportsbook-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
