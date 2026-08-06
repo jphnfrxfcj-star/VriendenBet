@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { StatusBadge } from '@/components/StatusBadge'
 import { footballMatch, wallet as demoWallet, weekendEvents } from '@/lib/demo-data'
@@ -33,10 +34,32 @@ type MielData = {
   transactions: TransactionRow[]
 }
 
-export default async function MyBetsPage() {
+const tabConfig = [
+  { id: 'open', label: 'Openstaand' },
+  { id: 'won', label: 'Gewonnen' },
+  { id: 'lost', label: 'Verloren' },
+  { id: 'refunded', label: 'Terugbetaald' },
+] as const
+
+type BetTab = (typeof tabConfig)[number]['id']
+
+export default async function MyBetsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>
+}) {
+  const params = await searchParams
   const data = await getMielData()
   const pendingBets = data.bets.filter((bet) => ['PENDING', 'PLACED', 'DRAFT'].includes(bet.status))
-  const settledBets = data.bets.filter((bet) => !['PENDING', 'PLACED', 'DRAFT'].includes(bet.status))
+  const activeTab = tabConfig.some((tab) => tab.id === params.tab) ? (params.tab as BetTab) : 'open'
+  const visibleBets = filterBets(data.bets, activeTab)
+  const activeTabLabel = tabConfig.find((tab) => tab.id === activeTab)?.label ?? 'Openstaand'
+  const tabCounts: Record<BetTab, number> = {
+    open: pendingBets.length,
+    won: data.bets.filter((bet) => bet.status === 'WON').length,
+    lost: data.bets.filter((bet) => bet.status === 'LOST').length,
+    refunded: data.bets.filter((bet) => ['REFUNDED', 'PARTIALLY_VOID'].includes(bet.status)).length,
+  }
 
   return (
     <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-6 md:py-10">
@@ -60,33 +83,34 @@ export default async function MyBetsPage() {
         <Metric label="Openstaand" value={String(pendingBets.length)} />
       </section>
 
-      <div className="flex gap-2 overflow-x-auto rounded-md border bg-card p-1 text-center text-xs font-black sm:grid sm:grid-cols-4 sm:text-sm">
-        {[
-          ['Openstaand', pendingBets.length],
-          ['Gewonnen', data.bets.filter((bet) => bet.status === 'WON').length],
-          ['Verloren', data.bets.filter((bet) => bet.status === 'LOST').length],
-          ['Terugbetaald', data.bets.filter((bet) => ['REFUNDED', 'PARTIALLY_VOID'].includes(bet.status)).length],
-        ].map(([tab, count], index) => (
-          <div
-            key={tab}
-            className={`shrink-0 rounded px-3 py-2 ${index === 0 ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
+      <nav className="grid grid-cols-2 gap-2 rounded-md border bg-card p-1 text-center text-xs font-black sm:grid-cols-4 sm:text-sm">
+        {tabConfig.map((tab) => (
+          <Link
+            key={tab.id}
+            href={`/mijn-bets?tab=${tab.id}`}
+            aria-current={activeTab === tab.id ? 'page' : undefined}
+            className={`flex min-h-11 items-center justify-center whitespace-nowrap rounded px-3 py-2 transition ${
+              activeTab === tab.id
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+            }`}
           >
-            {tab} <span>({count})</span>
-          </div>
+            {tab.label} <span>({tabCounts[tab.id]})</span>
+          </Link>
         ))}
-      </div>
+      </nav>
 
       <section className="grid gap-5 lg:grid-cols-[1fr_360px]">
         <Card>
           <CardHeader>
-            <CardTitle>Openstaande weddenschappen</CardTitle>
+            <CardTitle>{activeTab === 'open' ? 'Openstaande weddenschappen' : activeTabLabel}</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-3">
-            {pendingBets.length ? (
-              pendingBets.map((bet) => <BetCard key={bet.id} bet={bet} />)
+            {visibleBets.length ? (
+              visibleBets.map((bet) => <BetCard key={bet.id} bet={bet} />)
             ) : (
               <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-                Geen openstaande weddenschappen.
+                Geen weddenschappen in deze categorie.
               </p>
             )}
           </CardContent>
@@ -131,16 +155,6 @@ export default async function MyBetsPage() {
         </aside>
       </section>
 
-      {settledBets.length ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Afgehandeld</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3 md:grid-cols-2">
-            {settledBets.map((bet) => <BetCard key={bet.id} bet={bet} compact />)}
-          </CardContent>
-        </Card>
-      ) : null}
     </div>
   )
 }
@@ -148,9 +162,9 @@ export default async function MyBetsPage() {
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <Card>
-      <CardContent className="grid min-h-28 content-between p-4">
-        <p className="text-xs font-black uppercase leading-tight text-muted-foreground">{label}</p>
-        <p className="mt-2 text-3xl font-black text-primary">{value}</p>
+      <CardContent className="flex min-h-24 items-center justify-between gap-4 p-4 sm:p-5">
+        <p className="max-w-32 text-xs font-black uppercase leading-tight text-muted-foreground">{label}</p>
+        <p className="text-right text-2xl font-black text-primary sm:text-3xl">{value}</p>
       </CardContent>
     </Card>
   )
@@ -159,13 +173,13 @@ function Metric({ label, value }: { label: string; value: string }) {
 function BetCard({ bet, compact }: { bet: BetRow; compact?: boolean }) {
   return (
     <article className="grid gap-3 rounded-md border bg-secondary p-4">
-      <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-start">
+      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
         <div className="min-w-0">
           <p className="text-xs font-black uppercase text-primary">{bet.type}</p>
           <h2 className="break-words text-xl font-black leading-tight">{bet.title}</h2>
           <p className="text-sm text-muted-foreground">{bet.subtitle}</p>
         </div>
-        <div className="flex items-center justify-between gap-2 sm:grid sm:justify-items-end">
+        <div className="flex flex-wrap items-center gap-2 sm:grid sm:justify-items-end">
           <StatusBadge status={bet.status} />
           <span className="rounded-md bg-card px-3 py-2 text-sm font-black text-primary">@ {formatOdd(bet.odds)}</span>
         </div>
@@ -195,6 +209,13 @@ function WalletLine({ label, value, highlight }: { label: string; value: string;
       <strong className={highlight ? 'text-primary' : ''}>{value}</strong>
     </div>
   )
+}
+
+function filterBets(bets: BetRow[], tab: BetTab) {
+  if (tab === 'open') return bets.filter((bet) => ['PENDING', 'PLACED', 'DRAFT'].includes(bet.status))
+  if (tab === 'won') return bets.filter((bet) => bet.status === 'WON')
+  if (tab === 'lost') return bets.filter((bet) => bet.status === 'LOST')
+  return bets.filter((bet) => ['REFUNDED', 'PARTIALLY_VOID'].includes(bet.status))
 }
 
 async function getMielData(): Promise<MielData> {
