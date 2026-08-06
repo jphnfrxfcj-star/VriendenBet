@@ -3,11 +3,13 @@ import Image from 'next/image'
 import { Activity, Banknote, CalendarClock, Trophy, type LucideIcon } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { StatusBadge } from '@/components/StatusBadge'
-import { footballMatch, wallet, weekendEvents } from '@/lib/demo-data'
+import { getDashboardData } from '@/lib/dashboard'
 import { formatCredits, formatOdd } from '@/lib/utils'
 
-export default function HomePage() {
-  const activeEvent = weekendEvents[0]
+export const dynamic = 'force-dynamic'
+
+export default async function HomePage() {
+  const dashboard = await getDashboardData()
 
   return (
     <div className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 md:py-10">
@@ -23,9 +25,7 @@ export default function HomePage() {
           />
           <div className="absolute inset-0 -z-10 bg-gradient-to-r from-card via-card/92 to-card/40" />
           <p className="mb-3 text-xs font-black uppercase text-primary">Besloten weekend sportsbook</p>
-          <h1 className="max-w-3xl text-5xl font-black leading-none tracking-normal md:text-7xl">
-            MielBet
-          </h1>
+          <h1 className="max-w-3xl text-5xl font-black leading-none tracking-normal md:text-7xl">MielBet</h1>
           <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">
             Twee ludieke modules: dynamische weekendspellen met ratings en een aparte betbuilder
             voor Miels voetbalwedstrijd. Alleen virtuele eurobudgetten, geen echt geld.
@@ -47,10 +47,10 @@ export default function HomePage() {
           <CardContent className="grid gap-4">
             <div className="rounded-md bg-primary p-4 text-primary-foreground">
               <div className="text-xs font-black uppercase">Saldo</div>
-              <div className="mt-1 text-4xl font-black">{formatCredits(wallet.balance)}</div>
+              <div className="mt-1 text-4xl font-black">{formatCredits(dashboard.balance)}</div>
             </div>
-            <Metric icon={Banknote} label="Openstaande inzet" value={formatCredits(wallet.openStake)} />
-            <Metric icon={Trophy} label="Mogelijke winst" value={formatCredits(wallet.potentialPayout)} />
+            <Metric icon={Banknote} label="Openstaande inzet" value={formatCredits(dashboard.openStake)} />
+            <Metric icon={Trophy} label="Mogelijke return" value={formatCredits(dashboard.possibleReturn)} />
           </CardContent>
         </Card>
       </section>
@@ -64,9 +64,15 @@ export default function HomePage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="font-black">{activeEvent.title}</p>
-            <p className="mt-1 text-sm text-muted-foreground">{activeEvent.startsAt}</p>
-            <div className="mt-4"><StatusBadge status={activeEvent.status} /></div>
+            {dashboard.nextEvent ? (
+              <>
+                <p className="font-black">{dashboard.nextEvent.title}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{dashboard.nextEvent.startsAt}</p>
+                <div className="mt-4"><StatusBadge status={dashboard.nextEvent.status} /></div>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">Geen open weekendactiviteit.</p>
+            )}
           </CardContent>
         </Card>
 
@@ -78,9 +84,20 @@ export default function HomePage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="font-black">{footballMatch.homeTeam} vs {footballMatch.awayTeam}</p>
-            <p className="mt-1 text-sm text-muted-foreground">{footballMatch.startsAt} · {footballMatch.venue}</p>
-            <div className="mt-4"><StatusBadge status={footballMatch.status} /></div>
+            {dashboard.activeMatch ? (
+              <>
+                <p className="font-black">
+                  {dashboard.activeMatch.homeTeam} vs {dashboard.activeMatch.awayTeam}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {dashboard.activeMatch.startsAt}
+                  {dashboard.activeMatch.venue ? ` · ${dashboard.activeMatch.venue}` : ''}
+                </p>
+                <div className="mt-4"><StatusBadge status={dashboard.activeMatch.status} /></div>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">Geen open voetbalmatch.</p>
+            )}
           </CardContent>
         </Card>
 
@@ -89,9 +106,21 @@ export default function HomePage() {
             <CardTitle>Huidige betbuilder</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">3 selecties gecombineerd</p>
-            <p className="mt-2 text-3xl font-black text-primary">@ {formatOdd(footballMatch.betBuilder.finalOdds)}</p>
-            <p className="mt-2 text-sm text-muted-foreground">Potentieel: {formatCredits(footballMatch.betBuilder.potentialPayout)}</p>
+            {dashboard.currentBuilder ? (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  {dashboard.currentBuilder.selectionCount} selecties gecombineerd
+                </p>
+                <p className="mt-2 text-3xl font-black text-primary">
+                  @ {formatOdd(dashboard.currentBuilder.finalOdds)}
+                </p>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Potentieel: {formatCredits(dashboard.currentBuilder.potentialPayout)}
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">Nog geen open betbuilder.</p>
+            )}
           </CardContent>
         </Card>
       </section>
