@@ -1,6 +1,7 @@
 import {
   createParticipantAction,
   createUserAction,
+  setParticipantScoreAction,
   updateParticipantAction,
   updateUserAction,
 } from '../actions'
@@ -16,9 +17,13 @@ import {
 import { prisma } from '@/lib/prisma'
 
 export default async function AdminParticipantsPage() {
-  const [participants, users] = await Promise.all([
-    prisma.participant.findMany({ orderBy: { name: 'asc' } }),
+  const [participants, users, attributes] = await Promise.all([
+    prisma.participant.findMany({
+      include: { attributes: { include: { attribute: true } } },
+      orderBy: { name: 'asc' },
+    }),
     prisma.user.findMany({ include: { participant: true }, orderBy: { displayName: 'asc' } }),
+    prisma.attribute.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } }),
   ])
 
   return (
@@ -42,21 +47,52 @@ export default async function AdminParticipantsPage() {
         <div className="grid gap-3">
           {participants.length ? (
             participants.map((participant) => (
-              <form
-                key={participant.id}
-                action={updateParticipantAction}
-                className="grid gap-3 rounded-md border bg-secondary p-3 lg:grid-cols-[1fr_1fr_120px_1fr_auto]"
-              >
-                <input type="hidden" name="id" value={participant.id} />
-                <Field name="name" label="Naam" defaultValue={participant.name} required />
-                <Field name="nickname" label="Bijnaam" defaultValue={participant.nickname} />
-                <Field name="shirtSize" label="Shirt" defaultValue={participant.shirtSize} />
-                <Field name="photoUrl" label="Foto URL" defaultValue={participant.photoUrl} />
-                <div className="grid content-end gap-2">
-                  <CheckField name="isActive" label="Actief" defaultChecked={participant.isActive} />
-                  <SubmitButton>Opslaan</SubmitButton>
+              <div key={participant.id} className="grid gap-4 rounded-md border bg-secondary p-3">
+                <form action={updateParticipantAction} className="grid gap-3 lg:grid-cols-[1fr_1fr_120px_1fr_auto]">
+                  <input type="hidden" name="id" value={participant.id} />
+                  <Field name="name" label="Naam" defaultValue={participant.name} required />
+                  <Field name="nickname" label="Bijnaam" defaultValue={participant.nickname} />
+                  <Field name="shirtSize" label="Shirt" defaultValue={participant.shirtSize} />
+                  <Field name="photoUrl" label="Foto URL" defaultValue={participant.photoUrl} />
+                  <div className="grid content-end gap-2">
+                    <CheckField name="isActive" label="Actief" defaultChecked={participant.isActive} />
+                    <SubmitButton>Profiel opslaan</SubmitButton>
+                  </div>
+                </form>
+
+                <div className="rounded-md border bg-background p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h2 className="font-black">Ratings voor {participant.name}</h2>
+                    <span className="text-xs font-black uppercase text-muted-foreground">
+                      {attributes.length} parameters
+                    </span>
+                  </div>
+                  {attributes.length ? (
+                    <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                      {attributes.map((attribute) => {
+                        const existing = participant.attributes.find((score) => score.attributeId === attribute.id)
+                        return (
+                          <form key={attribute.id} action={setParticipantScoreAction} className="flex items-end gap-2">
+                            <input type="hidden" name="participantId" value={participant.id} />
+                            <input type="hidden" name="attributeId" value={attribute.id} />
+                            <Field
+                              name="score"
+                              label={attribute.name}
+                              type="number"
+                              min={attribute.minValue}
+                              max={attribute.maxValue}
+                              defaultValue={existing?.score ?? attribute.minValue}
+                            />
+                            <SubmitButton>OK</SubmitButton>
+                          </form>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <EmptyState>Maak eerst eigenschappen aan om spelers te kunnen scoren.</EmptyState>
+                  )}
                 </div>
-              </form>
+              </div>
             ))
           ) : (
             <EmptyState>Nog geen deelnemers.</EmptyState>
