@@ -1,8 +1,8 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
-import { Info, Minus, Plus, Repeat2, RotateCw, Square, Volume2, VolumeX } from 'lucide-react'
+import { Flame, Info, Minus, Play, Plus, Repeat2, RotateCw, Sparkles, Square, Trophy, Volume2, VolumeX, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { GorillaAnimation, type GorillaAnimationState } from '@/components/slot/GorillaAnimation'
@@ -34,6 +34,7 @@ type RecentSpinView = {
 
 type SlotMachineProps = {
   canSpin: boolean
+  showAnimationControls?: boolean
   initialBalance: number
   availableStakes: number[]
   symbols: SymbolView[]
@@ -41,6 +42,24 @@ type SlotMachineProps = {
   recentSpins: RecentSpinView[]
   activeFreeSpins: number
   initialGrid?: SlotSpinPayload['finalGrid']
+}
+
+type CelebrationKind = 'win' | 'big-win' | 'mega-win' | 'jackpot' | 'free-spins' | 'free-spins-total' | 'smash'
+
+type Celebration = {
+  id: number
+  kind: CelebrationKind
+  title: string
+  amount?: number
+  detail?: string
+}
+
+type FreeSpinRun = {
+  totalSpins: number
+  remaining: number
+  played: number
+  totalWin: number
+  lastWin: number
 }
 
 const emptyGrid: SlotSpinPayload['finalGrid'] = [
@@ -64,8 +83,21 @@ const visualBySlug: Record<string, string> = {
   bonus: 'BO',
 }
 
+function classifyWin(win: number, spinStake: number): CelebrationKind {
+  if (win >= spinStake * 25) return 'mega-win'
+  if (win >= spinStake * 10) return 'big-win'
+  return 'win'
+}
+
+function titleForWin(kind: CelebrationKind) {
+  if (kind === 'mega-win') return 'MEGA WIN'
+  if (kind === 'big-win') return 'BIG WIN'
+  return 'WIN'
+}
+
 export function SlotMachine({
   canSpin,
+  showAnimationControls = false,
   initialBalance,
   availableStakes,
   symbols,
@@ -85,10 +117,25 @@ export function SlotMachine({
   const [muted, setMuted] = useState(true)
   const [animationLevel, setAnimationLevel] = useState<'full' | 'limited' | 'skip'>('full')
   const [gorillaState, setGorillaState] = useState<GorillaAnimationState>('idle')
+  const [gorillaTick, setGorillaTick] = useState(0)
   const [pendingKey, setPendingKey] = useState<string | null>(null)
   const [isSpinning, setIsSpinning] = useState(false)
   const [autoSpinTarget, setAutoSpinTarget] = useState(10)
   const [autoSpinsRemaining, setAutoSpinsRemaining] = useState(0)
+  const [celebration, setCelebration] = useState<Celebration | null>(null)
+  const [freeSpinRun, setFreeSpinRun] = useState<FreeSpinRun | null>(() =>
+    activeFreeSpins > 0
+      ? {
+          totalSpins: activeFreeSpins,
+          remaining: activeFreeSpins,
+          played: 0,
+          totalWin: 0,
+          lastWin: 0,
+        }
+      : null,
+  )
+  const freeSpinRunRef = useRef(freeSpinRun)
+  const reelsRef = useRef<HTMLDivElement>(null)
 
   const stake = availableStakes[stakeIndex] ?? availableStakes[0] ?? 5
   const hasFreeSpin = freeSpins > 0
@@ -99,8 +146,55 @@ export function SlotMachine({
   const busy = isSpinning || Boolean(pendingKey)
   const autoRunning = autoSpinsRemaining > 0
 
+  useEffect(() => {
+    freeSpinRunRef.current = freeSpinRun
+  }, [freeSpinRun])
+
+  const playGorilla = useCallback((state: GorillaAnimationState) => {
+    setGorillaState(state)
+    setGorillaTick((current) => current + 1)
+  }, [])
+
+  const showCelebration = useCallback((next: Omit<Celebration, 'id'>) => {
+    setCelebration({ ...next, id: Date.now() })
+    if (window.innerWidth < 768) {
+      window.setTimeout(() => reelsRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 50)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!celebration) return
+    const timer = window.setTimeout(
+      () => setCelebration((current) => (current?.id === celebration.id ? null : current)),
+      celebration.kind === 'free-spins-total' || celebration.kind === 'mega-win' || celebration.kind === 'jackpot' ? 4200 : 2400,
+    )
+    return () => window.clearTimeout(timer)
+  }, [celebration])
+
   function changeStake(direction: -1 | 1) {
     setStakeIndex((current) => Math.min(Math.max(current + direction, 0), availableStakes.length - 1))
+  }
+
+  function triggerAnimationDemo(kind: CelebrationKind | GorillaAnimationState) {
+    if (kind === 'entrance' || kind === 'smash' || kind === 'nudge' || kind === 'celebrate' || kind === 'idle') {
+      playGorilla(kind)
+      if (kind === 'smash') {
+        showCelebration({ kind: 'smash', title: 'MIEL SMASH', detail: 'Animatie-test zonder spin.' })
+      }
+      return
+    }
+
+    playGorilla(kind === 'free-spins' ? 'smash' : 'celebrate')
+    if (kind === 'free-spins') {
+      showCelebration({ kind, title: 'FREE SPINS', detail: '5 automatische spins gestart.' })
+      return
+    }
+    showCelebration({
+      kind,
+      title: kind === 'free-spins-total' ? 'FREE SPINS TOTAAL' : titleForWin(kind),
+      amount: kind === 'mega-win' || kind === 'free-spins-total' ? stake * 28 : kind === 'big-win' ? stake * 12 : stake * 4,
+      detail: 'Animatie-test zonder walletwijziging.',
+    })
   }
 
   const spin = useCallback(async (mode: 'manual' | 'auto' | 'free' = 'manual') => {
@@ -110,7 +204,7 @@ export function SlotMachine({
     setPendingKey(idempotencyKey)
     setIsSpinning(true)
     setMessage('')
-    setGorillaState('entrance')
+    playGorilla('entrance')
     setIsReeling(animationLevel !== 'skip')
 
     try {
@@ -123,7 +217,7 @@ export function SlotMachine({
       }
       if (!result.ok || !result.spin) {
         setMessage(result.message)
-        setGorillaState('idle')
+        playGorilla('idle')
         setIsReeling(false)
         setAutoSpinsRemaining(0)
         setPendingKey(null)
@@ -132,6 +226,7 @@ export function SlotMachine({
       }
 
       const spinResult = result.spin
+      const jackpotWin = spinResult.jackpotResult?.reduce((sum, jackpot) => sum + jackpot.amount, 0) ?? 0
       setIsReeling(false)
       setGrid(spinResult.finalGrid)
       setBalance(spinResult.balanceAfter)
@@ -146,35 +241,88 @@ export function SlotMachine({
         },
         ...items.slice(0, 7),
       ])
-      setFreeSpins((current) => Math.max(0, current - (current > 0 ? 1 : 0) + spinResult.freeSpinsAwarded))
+      const nextFreeSpins = Math.max(0, freeSpins - (freeSpinAtStart ? 1 : 0) + spinResult.freeSpinsAwarded)
+      setFreeSpins(nextFreeSpins)
+      if (spinResult.freeSpinsAwarded > 0 && !freeSpinAtStart) {
+        setFreeSpinRun({
+          totalSpins: spinResult.freeSpinsAwarded,
+          remaining: spinResult.freeSpinsAwarded,
+          played: 0,
+          totalWin: 0,
+          lastWin: 0,
+        })
+        showCelebration({
+          kind: 'free-spins',
+          title: 'FREE SPINS',
+          detail: `${spinResult.freeSpinsAwarded} automatische spins gewonnen.`,
+        })
+      }
+      if (freeSpinAtStart) {
+        const currentRun = freeSpinRunRef.current ?? {
+          totalSpins: freeSpins,
+          remaining: freeSpins,
+          played: 0,
+          totalWin: 0,
+          lastWin: 0,
+        }
+        const updatedRun = {
+          totalSpins: currentRun.totalSpins + spinResult.freeSpinsAwarded,
+          remaining: Math.max(0, currentRun.remaining - 1 + spinResult.freeSpinsAwarded),
+          played: currentRun.played + 1,
+          totalWin: currentRun.totalWin + spinResult.finalWin,
+          lastWin: spinResult.finalWin,
+        }
+        setFreeSpinRun(updatedRun.remaining > 0 ? updatedRun : null)
+        if (updatedRun.remaining === 0) {
+          const kind = classifyWin(updatedRun.totalWin, spinResult.stake)
+          showCelebration({
+            kind: 'free-spins-total',
+            title: kind === 'mega-win' ? 'MEGA FREE WIN' : kind === 'big-win' ? 'BIG FREE WIN' : 'FREE SPINS TOTAAL',
+            amount: updatedRun.totalWin,
+            detail: `${updatedRun.played} free spins uitgespeeld.`,
+          })
+        } else if (spinResult.finalWin > 0) {
+          showCelebration({
+            kind: classifyWin(spinResult.finalWin, spinResult.stake),
+            title: `FREE SPIN +${formatCredits(spinResult.finalWin)}`,
+            amount: updatedRun.totalWin,
+            detail: `Totaal na ${updatedRun.played}/${updatedRun.totalSpins} spins.`,
+          })
+        }
+      } else if (jackpotWin > 0) {
+        showCelebration({ kind: 'jackpot', title: 'JACKPOT', amount: jackpotWin, detail: 'Jackpot geraakt.' })
+      } else if (spinResult.finalWin > 0 && spinResult.freeSpinsAwarded === 0) {
+        const kind = classifyWin(spinResult.finalWin, spinResult.stake)
+        showCelebration({ kind, title: titleForWin(kind), amount: spinResult.finalWin })
+      }
       if (mode === 'auto' && !freeSpinAtStart) {
         setAutoSpinsRemaining((current) => Math.max(0, current - 1))
       }
       setMessage(result.message)
 
       if (animationLevel === 'skip') {
-        setGorillaState('idle')
+        playGorilla('idle')
       } else if (spinResult.featureType?.includes('NUDGE')) {
-        setGorillaState('nudge')
+        playGorilla('nudge')
       } else if (spinResult.featureType) {
-        setGorillaState('smash')
-      } else if (spinResult.finalWin >= spinResult.stake * 10) {
-        setGorillaState('celebrate')
+        playGorilla('smash')
+      } else if (spinResult.finalWin > 0) {
+        playGorilla('celebrate')
       } else {
-        setGorillaState('idle')
+        playGorilla('idle')
       }
-      window.setTimeout(() => setGorillaState(spinResult.finalWin > 0 ? 'celebrate' : 'idle'), reduced ? 250 : 900)
+      window.setTimeout(() => playGorilla(spinResult.finalWin > 0 ? 'celebrate' : 'idle'), reduced ? 250 : 900)
       setPendingKey(null)
       setIsSpinning(false)
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Spin mislukt')
-      setGorillaState('idle')
+      playGorilla('idle')
       setIsReeling(false)
       setAutoSpinsRemaining(0)
       setPendingKey(null)
       setIsSpinning(false)
     }
-  }, [animationLevel, canSpin, freeSpins, insufficientBalance, isSpinning, pendingKey, reduced, stake])
+  }, [animationLevel, canSpin, freeSpins, insufficientBalance, isSpinning, pendingKey, playGorilla, reduced, showCelebration, stake])
 
   useEffect(() => {
     if (!canSpin || busy || insufficientBalance) return
@@ -224,6 +372,7 @@ export function SlotMachine({
           <GorillaAnimation
             state={gorillaState}
             reduced={reduced}
+            animationKey={gorillaTick}
             className="order-2 mx-auto w-full max-w-56 lg:order-none lg:max-w-none"
           />
 
@@ -235,8 +384,28 @@ export function SlotMachine({
               <Metric label="Free spins" value={String(freeSpins)} />
             </div>
 
+            {freeSpinRun ? (
+              <div className="grid gap-2 rounded-md border border-primary/45 bg-primary/10 p-3 text-sm sm:grid-cols-3">
+                <div>
+                  <p className="text-[11px] font-black uppercase text-muted-foreground">Free spins run</p>
+                  <p className="font-black text-foreground">
+                    {freeSpinRun.played}/{freeSpinRun.totalSpins} gespeeld
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-black uppercase text-muted-foreground">Opgeteld</p>
+                  <p className="font-black text-primary">{formatCredits(freeSpinRun.totalWin)}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-black uppercase text-muted-foreground">Laatste free spin</p>
+                  <p className="font-black text-foreground">{formatCredits(freeSpinRun.lastWin)}</p>
+                </div>
+              </div>
+            ) : null}
+
             <div className="relative rounded-md border border-amber-300/55 bg-[#050b07] p-2 shadow-[0_0_50px_rgba(250,204,21,0.16)] sm:p-3">
               <div
+                ref={reelsRef}
                 className={cn(
                   'relative grid aspect-square max-h-[min(70vh,520px)] min-h-72 w-full grid-cols-3 gap-2 overflow-hidden rounded-md bg-[#08130d] p-2 sm:gap-3 sm:p-3',
                   isReeling && animationLevel === 'full' ? 'animate-[slot-reel-pulse_700ms_ease-in-out_infinite]' : '',
@@ -269,6 +438,7 @@ export function SlotMachine({
                 ))}
                 <PaylineOverlay lines={isReeling ? [] : lastSpin?.evaluatedPaylines ?? []} />
                 {isReeling ? <div className="pointer-events-none absolute inset-x-0 top-1/2 z-20 h-px bg-primary/80 shadow-[0_0_18px_hsl(var(--primary))]" /> : null}
+                {celebration ? <SlotCelebrationOverlay celebration={celebration} /> : null}
               </div>
             </div>
 
@@ -320,6 +490,7 @@ export function SlotMachine({
                 <p className="text-sm font-black text-primary">
                   {freeSpins > 0 ? `Free spins automatisch: ${freeSpins}` : autoRunning ? `Nog ${autoSpinsRemaining} spins` : 'Kies aantal rondes'}
                 </p>
+                {freeSpinRun ? <p className="text-xs font-bold text-muted-foreground">Sessie totaal {formatCredits(freeSpinRun.totalWin)}</p> : null}
               </div>
               <Select
                 value={String(autoSpinTarget)}
@@ -390,7 +561,57 @@ export function SlotMachine({
             )}
           </div>
         </section>
+
+        {showAnimationControls ? (
+          <section className="rounded-md border bg-card p-4">
+            <h2 className="flex items-center gap-2 text-lg font-black">
+              <Play className="size-5 text-primary" />
+              Test animaties
+            </h2>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <Button type="button" variant="secondary" onClick={() => triggerAnimationDemo('smash')}>
+                <Zap className="size-4" />
+                Smash
+              </Button>
+              <Button type="button" variant="secondary" onClick={() => triggerAnimationDemo('win')}>
+                <Sparkles className="size-4" />
+                Win
+              </Button>
+              <Button type="button" variant="secondary" onClick={() => triggerAnimationDemo('big-win')}>
+                <Trophy className="size-4" />
+                Big win
+              </Button>
+              <Button type="button" variant="secondary" onClick={() => triggerAnimationDemo('free-spins')}>
+                <Flame className="size-4" />
+                Free spins
+              </Button>
+            </div>
+          </section>
+        ) : null}
       </aside>
+    </div>
+  )
+}
+
+function SlotCelebrationOverlay({ celebration }: { celebration: Celebration }) {
+  const intense = celebration.kind === 'big-win' || celebration.kind === 'mega-win' || celebration.kind === 'jackpot' || celebration.kind === 'free-spins-total'
+
+  return (
+    <div
+      key={celebration.id}
+      className={cn(
+        'pointer-events-none absolute inset-0 z-40 grid place-items-center bg-black/42 p-4 text-center',
+        intense ? 'slot-celebration-intense' : 'slot-celebration',
+      )}
+    >
+      <div className="grid min-w-56 justify-items-center gap-2 rounded-md border border-primary/70 bg-[#08130d]/92 px-5 py-4 shadow-[0_0_46px_rgba(183,255,26,0.35)]">
+        <p className="text-[11px] font-black uppercase text-amber-300">{celebration.kind === 'smash' ? 'Feature' : 'Resultaat'}</p>
+        <strong className="text-3xl font-black leading-none text-primary sm:text-5xl">{celebration.title}</strong>
+        {typeof celebration.amount === 'number' ? (
+          <span className="slot-count-pop text-2xl font-black text-foreground sm:text-4xl">{formatCredits(celebration.amount)}</span>
+        ) : null}
+        {celebration.detail ? <span className="max-w-72 text-sm font-bold text-muted-foreground">{celebration.detail}</span> : null}
+      </div>
     </div>
   )
 }

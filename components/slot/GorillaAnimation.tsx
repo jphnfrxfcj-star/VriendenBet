@@ -14,14 +14,17 @@ const assetByState: Record<GorillaAnimationState, string> = {
 export function GorillaAnimation({
   state,
   reduced,
+  animationKey,
   className,
 }: {
   state: GorillaAnimationState
   reduced?: boolean
+  animationKey?: number
   className?: string
 }) {
   return (
     <div
+      key={`${state}-${animationKey ?? 0}`}
       className={cn(
         'relative aspect-[3/4] min-h-52 overflow-hidden rounded-md border border-amber-300/35 bg-[#102616]',
         !reduced && state === 'entrance' ? 'animate-[slot-entrance_700ms_ease-out_1]' : '',

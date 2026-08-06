@@ -42,6 +42,7 @@ export default async function SlotPage() {
 
       <SlotMachine
         canSpin={canSpin}
+        showAnimationControls={process.env.NODE_ENV !== 'production' || user?.role === 'ADMIN'}
         initialBalance={data.balance}
         availableStakes={data.availableStakes}
         symbols={data.symbols}
