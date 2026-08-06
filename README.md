@@ -147,7 +147,7 @@ Netlify ondersteunt moderne Next.js App Router-projecten met SSR en Server Actio
   publish = ".next"
 ```
 
-Zet minstens `DATABASE_URL`, `SESSION_SECRET` en `SEED_PIN` in Netlify Environment Variables. `build:netlify` voert `prisma migrate deploy` uit voor `next build`, zodat de productie-DB-schemawijzigingen automatisch worden toegepast.
+Zet minstens `DATABASE_URL`, `SESSION_SECRET` en `SEED_PIN` in Netlify Environment Variables. `build:netlify` voert `prisma migrate deploy` uit voor `next build` zodra `DATABASE_URL` een echte Postgres connection string bevat. Als `DATABASE_URL` nog ontbreekt of nog een placeholder is, wordt migratie overgeslagen zodat een eerste UI-deploy niet blokkeert; login/databaseflows werken dan pas na het instellen van de echte databasevariabele.
 
 Gebruik voor deze codebase een Postgres-database met een Prisma-compatibele `DATABASE_URL`. De kleinste ingreep is Netlify Database of een andere managed Postgres gebruiken en de connection string als `DATABASE_URL` zetten. Laat `ALLOW_DEMO_LOGIN` leeg of `false` in productie.
 

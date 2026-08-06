@@ -9,7 +9,7 @@ and do not provide the same scope controls as Netlify-managed site variables.
 
 | Key | Context | Scope | Notes |
 | --- | --- | --- | --- |
-| `DATABASE_URL` | Production | Builds + Functions | Required by Prisma during `prisma migrate deploy` and at runtime for server queries. |
+| `DATABASE_URL` | Production | Builds + Functions | Required by Prisma during `prisma migrate deploy` and at runtime for server queries. If missing, the Netlify build skips migrations and database login will not work yet. |
 | `SESSION_SECRET` | Production | Functions | Required for signed HTTP-only session cookies. Must be at least 32 characters. |
 | `SEED_PIN` | Production | Builds | Required when running the seed script against production. Use Functions scope only if `ALLOW_DEMO_LOGIN=true`. |
 | `LOGIN_RATE_LIMIT_WINDOW_SECONDS` | Production | Functions | Optional. Defaults to `60`. |
