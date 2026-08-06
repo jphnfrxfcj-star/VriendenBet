@@ -15,6 +15,13 @@ import {
   SubmitButton,
 } from '../shared'
 import { prisma } from '@/lib/prisma'
+import { roleOptionLabel } from '@/lib/roles'
+
+const roleOptions = [
+  { value: 'ADMIN', label: roleOptionLabel('ADMIN') },
+  { value: 'MIEL', label: roleOptionLabel('MIEL') },
+  { value: 'VIEWER', label: roleOptionLabel('VIEWER') },
+]
 
 export default async function AdminParticipantsPage() {
   const [participants, users, attributes] = await Promise.all([
@@ -110,11 +117,7 @@ export default async function AdminParticipantsPage() {
             name="role"
             label="Rol"
             defaultValue="VIEWER"
-            options={[
-              { value: 'ADMIN', label: 'ADMIN' },
-              { value: 'MIEL', label: 'MIEL' },
-              { value: 'VIEWER', label: 'VIEWER' },
-            ]}
+            options={roleOptions}
           />
           <SelectField
             name="participantId"
@@ -144,11 +147,7 @@ export default async function AdminParticipantsPage() {
                 name="role"
                 label="Rol"
                 defaultValue={user.role}
-                options={[
-                  { value: 'ADMIN', label: 'ADMIN' },
-                  { value: 'MIEL', label: 'MIEL' },
-                  { value: 'VIEWER', label: 'VIEWER' },
-                ]}
+                options={roleOptions}
               />
               <SelectField
                 name="participantId"

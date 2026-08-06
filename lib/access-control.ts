@@ -1,11 +1,12 @@
 import type { Role } from './domain'
+import { canUseMielMode } from './roles'
 
 export function canAccessAdmin(role?: Role) {
   return role === 'ADMIN'
 }
 
 export function canPlaceBet(role?: Role) {
-  return role === 'MIEL'
+  return canUseMielMode(role)
 }
 
 export function canSuggestGame(role?: Role) {
@@ -14,7 +15,7 @@ export function canSuggestGame(role?: Role) {
 
 export function assertCanPlaceBet(role?: Role) {
   if (!canPlaceBet(role)) {
-    throw new Error('Alleen Miel kan inzetten')
+    throw new Error('Alleen Miel of admin kan inzetten')
   }
 }
 

@@ -4,6 +4,7 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { footballMatch, wallet as demoWallet, weekendEvents } from '@/lib/demo-data'
 import { getSessionUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { canUseMielMode } from '@/lib/roles'
 import { formatCredits, formatOdd } from '@/lib/utils'
 
 type BetRow = {
@@ -65,7 +66,7 @@ export default async function MyBetsPage({
     <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-6 md:py-10">
       <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
         <div className="min-w-0">
-          <p className="mb-2 text-xs font-black uppercase text-primary">Miel only</p>
+          <p className="mb-2 text-xs font-black uppercase text-primary">Miel-modus</p>
           <h1 className="text-4xl font-black tracking-normal md:text-5xl">Mijn weddenschappen</h1>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
             Overzicht van bankroll, open inzetten, mogelijke uitbetalingen en recente walletbewegingen.
@@ -220,20 +221,26 @@ function filterBets(bets: BetRow[], tab: BetTab) {
 
 async function getMielData(): Promise<MielData> {
   const session = await getSessionUser()
-  if (session?.role === 'MIEL') {
+  if (canUseMielMode(session?.role)) {
     try {
+      const bettingUser =
+        session?.role === 'ADMIN'
+          ? await prisma.user.findFirst({ where: { role: 'MIEL', isActive: true }, select: { id: true } })
+          : { id: session.userId }
+      if (!bettingUser) return getDemoMielData()
+
       const [wallet, eventBets, betBuilders] = await Promise.all([
         prisma.wallet.findUnique({
-          where: { userId: session.userId },
+          where: { userId: bettingUser.id },
           include: { transactions: { orderBy: { createdAt: 'desc' }, take: 8 } },
         }),
         prisma.eventBet.findMany({
-          where: { mielUserId: session.userId },
+          where: { mielUserId: bettingUser.id },
           include: { event: true, selectedTeam: true },
           orderBy: { placedAt: 'desc' },
         }),
         prisma.footballBetBuilder.findMany({
-          where: { mielUserId: session.userId },
+          where: { mielUserId: bettingUser.id },
           include: {
             footballMatch: true,
             selections: { include: { footballSelection: true } },

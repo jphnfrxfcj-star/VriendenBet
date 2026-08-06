@@ -3,6 +3,7 @@ import { Activity, ChevronDown, Home, Shield, Trophy, UserRound, WalletCards } f
 import { getSessionUser } from '@/lib/auth'
 import { wallet as demoWallet } from '@/lib/demo-data'
 import { prisma } from '@/lib/prisma'
+import { canUseMielMode, roleLabels } from '@/lib/roles'
 import { formatCredits } from '@/lib/utils'
 
 const viewerItems = [
@@ -15,10 +16,16 @@ const viewerItems = [
 
 export async function AppNav() {
   const user = await getSessionUser()
-  const mielBalance = user?.role === 'MIEL' ? await getMielBalance(user.userId) : null
+  const mielBalance = canUseMielMode(user?.role) ? await getMielBalance(user.role === 'MIEL' ? user.userId : undefined) : null
   const items =
     user?.role === 'ADMIN'
-      ? viewerItems.map((item) => (item.href === '/deelnemers' ? { href: '/admin', label: 'Admin', icon: Shield } : item))
+      ? viewerItems.map((item) =>
+          item.href === '/live'
+            ? { ...item, href: '/mijn-bets', label: 'Mijn bets' }
+            : item.href === '/deelnemers'
+            ? { href: '/admin', label: 'Admin', icon: Shield }
+            : item,
+        )
       : user?.role === 'MIEL'
       ? viewerItems.map((item) => (item.href === '/live' ? { ...item, href: '/mijn-bets', label: 'Mijn bets' } : item))
       : viewerItems
@@ -57,17 +64,20 @@ export async function AppNav() {
                 <ChevronDown className="size-4 text-muted-foreground transition group-open:rotate-180" />
               </summary>
               <div className="absolute right-0 top-[calc(100%+0.5rem)] z-50 grid min-w-56 overflow-hidden rounded-md border bg-card p-1 text-sm font-bold shadow-2xl shadow-black/25">
+                <div className="px-3 py-2 text-xs font-black uppercase text-muted-foreground">
+                  {roleLabels[user.role]}
+                </div>
                 <Link href="/profiel" className="rounded px-3 py-2 text-muted-foreground hover:bg-secondary hover:text-foreground">
                   Profiel
                 </Link>
-                {user.role === 'MIEL' ? (
+                {canUseMielMode(user.role) ? (
                   <Link href="/mijn-bets" className="rounded px-3 py-2 text-muted-foreground hover:bg-secondary hover:text-foreground">
-                    Weddenschappen
+                    Mijn weddenschappen
                   </Link>
                 ) : null}
                 {user.role === 'ADMIN' ? (
                   <Link href="/admin/weddenschappen" className="rounded px-3 py-2 text-muted-foreground hover:bg-secondary hover:text-foreground">
-                    Weddenschappen
+                    Admin weddenschappen
                   </Link>
                 ) : null}
               </div>
@@ -96,9 +106,11 @@ export async function AppNav() {
   )
 }
 
-async function getMielBalance(userId: string) {
+async function getMielBalance(userId?: string) {
   try {
-    const wallet = await prisma.wallet.findUnique({ where: { userId } })
+    const wallet = userId
+      ? await prisma.wallet.findUnique({ where: { userId } })
+      : await prisma.wallet.findFirst({ where: { user: { role: 'MIEL', isActive: true } } })
     return wallet ? Number(wallet.balance) : null
   } catch (error) {
     if (process.env.NODE_ENV === 'production') {

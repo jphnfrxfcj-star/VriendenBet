@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { users } from '@/lib/demo-data'
+import { roleOptionLabel } from '@/lib/roles'
 
 type LoginValues = {
   displayName: string
@@ -43,7 +44,7 @@ export function LoginForm() {
         <Select {...register('displayName')}>
           {users.map((user) => (
             <option key={user.displayName} value={user.displayName}>
-              {user.displayName} · {user.role}
+              {user.displayName} · {roleOptionLabel(user.role)}
             </option>
           ))}
         </Select>

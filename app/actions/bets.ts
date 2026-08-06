@@ -26,18 +26,24 @@ function roundMoney(value: number) {
 }
 
 export async function placeWeekendBetAction(formData: FormData): Promise<BetActionResult> {
-  const session = await requireRole(['MIEL'])
+  const session = await requireRole(['ADMIN', 'MIEL'])
   const eventId = value(formData, 'eventId')
   const selectedTeamId = value(formData, 'selectedTeamId')
   const stake = numberValue(formData, 'stake')
 
   try {
     await prisma.$transaction(async (tx) => {
-      const user = await tx.user.findUniqueOrThrow({
-        where: { id: session.userId },
-        include: { wallet: true },
-      })
-      const wallet = user.wallet
+      const bettingUser =
+        session.role === 'ADMIN'
+          ? await tx.user.findFirstOrThrow({
+              where: { role: 'MIEL', isActive: true },
+              include: { wallet: true },
+            })
+          : await tx.user.findUniqueOrThrow({
+              where: { id: session.userId },
+              include: { wallet: true },
+            })
+      const wallet = bettingUser.wallet
       if (!wallet) throw new Error('Geen wallet gevonden voor Miel')
 
       const event = await tx.event.findUniqueOrThrow({
@@ -45,7 +51,7 @@ export async function placeWeekendBetAction(formData: FormData): Promise<BetActi
         include: {
           gameTemplate: true,
           teams: { include: { members: true } },
-          bets: { where: { mielUserId: session.userId } },
+          bets: { where: { mielUserId: bettingUser.id } },
         },
       })
       if (event.status !== 'ODDS_READY') throw new Error('Dit weekendspel staat niet open voor inzetten')
@@ -64,7 +70,7 @@ export async function placeWeekendBetAction(formData: FormData): Promise<BetActi
           })),
         },
         selectedTeamId,
-        user.participantId ?? undefined,
+        bettingUser.participantId ?? undefined,
       )
       assertStakeAllowed(Number(wallet.balance), stake)
 
@@ -72,7 +78,7 @@ export async function placeWeekendBetAction(formData: FormData): Promise<BetActi
       const bet = await tx.eventBet.create({
         data: {
           eventId,
-          mielUserId: session.userId,
+          mielUserId: bettingUser.id,
           selectedTeamId,
           stake,
           oddsAtPlacement: odds,
@@ -102,7 +108,7 @@ export async function placeWeekendBetAction(formData: FormData): Promise<BetActi
           action: 'EVENT_BET_PLACED',
           entityType: 'EventBet',
           entityId: bet.id,
-          metadataJson: { eventId, selectedTeamId, stake, odds },
+          metadataJson: { eventId, selectedTeamId, stake, odds, placedForUserId: bettingUser.id },
         },
       })
     })
@@ -115,11 +121,12 @@ export async function placeWeekendBetAction(formData: FormData): Promise<BetActi
   revalidatePath(`/weekendspellen/${eventId}`)
   revalidatePath('/admin')
   revalidatePath('/admin/evenementen')
+  revalidatePath('/admin/weddenschappen')
   return { ok: true, message: 'Bet geplaatst. Je saldo is aangepast.' }
 }
 
 export async function placeFootballBetBuilderAction(formData: FormData): Promise<BetActionResult> {
-  const session = await requireRole(['MIEL'])
+  const session = await requireRole(['ADMIN', 'MIEL'])
   const stake = numberValue(formData, 'stake')
   const selectionIds = formData
     .getAll('selectionId')
@@ -128,11 +135,17 @@ export async function placeFootballBetBuilderAction(formData: FormData): Promise
 
   try {
     await prisma.$transaction(async (tx) => {
-      const user = await tx.user.findUniqueOrThrow({
-        where: { id: session.userId },
-        include: { wallet: true },
-      })
-      const wallet = user.wallet
+      const bettingUser =
+        session.role === 'ADMIN'
+          ? await tx.user.findFirstOrThrow({
+              where: { role: 'MIEL', isActive: true },
+              include: { wallet: true },
+            })
+          : await tx.user.findUniqueOrThrow({
+              where: { id: session.userId },
+              include: { wallet: true },
+            })
+      const wallet = bettingUser.wallet
       if (!wallet) throw new Error('Geen wallet gevonden voor Miel')
       if (selectionIds.length < 2) throw new Error('Kies minstens twee selecties')
 
@@ -159,7 +172,7 @@ export async function placeFootballBetBuilderAction(formData: FormData): Promise
         isManipulable: selection.isManipulable,
       }))
       for (const selection of selectionInputs) {
-        assertFootballSelectionAllowed(selectionInputs, selection.id, Boolean(user.participantId))
+        assertFootballSelectionAllowed(selectionInputs, selection.id, Boolean(bettingUser.participantId))
       }
 
       const relations = await tx.footballSelectionRelation.findMany({
@@ -183,7 +196,7 @@ export async function placeFootballBetBuilderAction(formData: FormData): Promise
       const builder = await tx.footballBetBuilder.create({
         data: {
           footballMatchId: match.id,
-          mielUserId: session.userId,
+          mielUserId: bettingUser.id,
           status: 'PLACED',
           stake,
           rawCombinedOdds: calculation.rawCombinedOdds,
@@ -220,7 +233,7 @@ export async function placeFootballBetBuilderAction(formData: FormData): Promise
           action: 'FOOTBALL_BETBUILDER_PLACED',
           entityType: 'FootballBetBuilder',
           entityId: builder.id,
-          metadataJson: { matchId: match.id, selectionIds, stake, finalOdds: calculation.finalOdds },
+          metadataJson: { matchId: match.id, selectionIds, stake, finalOdds: calculation.finalOdds, placedForUserId: bettingUser.id },
         },
       })
     })
@@ -232,5 +245,6 @@ export async function placeFootballBetBuilderAction(formData: FormData): Promise
   revalidatePath('/match')
   revalidatePath('/admin')
   revalidatePath('/admin/voetbal')
+  revalidatePath('/admin/weddenschappen')
   return { ok: true, message: 'Betbuilder geplaatst. Je saldo is aangepast.' }
 }

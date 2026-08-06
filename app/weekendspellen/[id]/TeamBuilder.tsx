@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import type { ParticipantRating, Role, TeamInput } from '@/lib/domain'
 import { getEligibleSelectionsForMiel } from '@/lib/eligibility'
 import { assertValidTeamComposition, calculateTeamOdds } from '@/lib/odds'
+import { canUseMielMode } from '@/lib/roles'
 import { formatCredits, formatOdd } from '@/lib/utils'
 
 type ParticipantOption = {
@@ -47,7 +48,8 @@ export function TeamBuilder({
   const [message, setMessage] = useState('')
   const [isPending, startTransition] = useTransition()
 
-  const editable = role === 'MIEL' && !eventId && !ticket && ['OPEN_FOR_SELECTION', 'ODDS_READY'].includes(status)
+  const mielMode = canUseMielMode(role)
+  const editable = mielMode && !eventId && !ticket && ['OPEN_FOR_SELECTION', 'ODDS_READY'].includes(status)
   const selectedParticipantIds = useMemo(
     () => new Set(teams.flatMap((team) => team.memberParticipantIds)),
     [teams],
@@ -80,7 +82,7 @@ export function TeamBuilder({
   )
   const selectedOdds = odds.find((item) => item.teamId === selectedTeamId)
   const canPlaceBet =
-    role === 'MIEL' &&
+    mielMode &&
     !ticket &&
     status === 'ODDS_READY' &&
     !validationError &&
@@ -229,13 +231,13 @@ export function TeamBuilder({
               ))}
             </div>
 
-            {role !== 'MIEL' ? (
+            {!mielMode ? (
               <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-                Alleen Miel kan teams aanpassen. Viewers zien deze indeling read-only.
+                Alleen Miel en admins kunnen teams aanpassen. Viewers zien deze indeling read-only.
               </p>
             ) : eventId ? (
               <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-                Teams worden beheerd door admins. Miel kan hier alleen inzetten op zijn toegestane team.
+                Teams worden beheerd in admin. Miel en admins kunnen hier inzetten op Miels toegestane team.
               </p>
             ) : null}
             {validationError ? (
@@ -277,7 +279,7 @@ export function TeamBuilder({
         <Card>
           <CardHeader>
             <CardTitle>Inzetformulier</CardTitle>
-            <p className="text-sm text-muted-foreground">Alleen Miel kan inzetten. Maximaal €250.</p>
+            <p className="text-sm text-muted-foreground">Miel en admins kunnen inzetten. Maximaal €250.</p>
           </CardHeader>
           <CardContent className="grid gap-3">
             {odds.map((odd) => (

@@ -10,8 +10,9 @@ describe('rollen en wallet', () => {
     await expect(verifyHashedPin('1111', hash)).resolves.toBe(false)
   })
 
-  it('laat alleen Miel inzetten', () => {
-    expect(() => assertCanPlaceBet('ADMIN')).toThrow('Alleen Miel kan inzetten')
+  it('laat Miel en admins inzetten', () => {
+    expect(() => assertCanPlaceBet('VIEWER')).toThrow('Alleen Miel of admin kan inzetten')
+    expect(() => assertCanPlaceBet('ADMIN')).not.toThrow()
     expect(() => assertCanPlaceBet('MIEL')).not.toThrow()
   })
 
