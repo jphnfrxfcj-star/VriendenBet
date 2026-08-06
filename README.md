@@ -57,7 +57,7 @@ Gebruik in productie een lange willekeurige `SESSION_SECRET` en een expliciete `
 
 ## Database
 
-Het Prisma-schema staat in `prisma/schema.prisma`. Het model maakt onderscheid tussen users, fysieke deelnemers, eigenschappen, templates, events, teams, odds, bets, football markets, betbuilders, wallettransacties, spelvoorstellen en auditlogs.
+Het Prisma-schema staat in `prisma/schema.prisma`. De eerste migratie staat in `prisma/migrations/202608060001_initial_mielbet`. Het model maakt onderscheid tussen users, fysieke deelnemers, eigenschappen, templates, events, teams, odds, bets, football markets, betbuilders, wallettransacties, spelvoorstellen en auditlogs.
 
 Belangrijke regels:
 
@@ -143,11 +143,21 @@ Netlify ondersteunt moderne Next.js App Router-projecten met SSR en Server Actio
 
 ```toml
 [build]
-  command = "npm run build"
+  command = "npm run build:netlify"
   publish = ".next"
 ```
 
-Zet minstens `DATABASE_URL` en `SESSION_SECRET` in Netlify Environment Variables. Gebruik een externe PostgreSQL-database, bijvoorbeeld Neon, Supabase of Netlify Blobs plus een Postgres-provider. Run Prisma-migraties vanuit je lokale machine of CI voordat je productie gebruikt.
+Zet minstens `DATABASE_URL`, `SESSION_SECRET` en `SEED_PIN` in Netlify Environment Variables. `build:netlify` voert `prisma migrate deploy` uit voor `next build`, zodat de productie-DB-schemawijzigingen automatisch worden toegepast.
+
+Gebruik voor deze codebase een Postgres-database met een Prisma-compatibele `DATABASE_URL`. De kleinste ingreep is Netlify Database of een andere managed Postgres gebruiken en de connection string als `DATABASE_URL` zetten. Laat `ALLOW_DEMO_LOGIN` leeg of `false` in productie.
+
+Seeddata wordt bewust niet automatisch tijdens elke Netlify build gedraaid. Run na de eerste migratie eenmalig:
+
+```bash
+SEED_PIN="jouw-productie-pin" npm run db:seed
+```
+
+Doe dat tegen dezelfde productie-`DATABASE_URL`, bijvoorbeeld via Netlify CLI/env of vanuit een veilige lokale shell.
 
 ## Bekende MVP-beperkingen
 
