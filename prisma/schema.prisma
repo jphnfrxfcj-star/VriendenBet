@@ -42,6 +42,12 @@ enum WalletTransactionType {
   BET_REFUND
   ADMIN_ADJUSTMENT
   BONUS
+  SLOT_STAKE
+  SLOT_WIN
+  SLOT_REFUND
+  SLOT_JACKPOT_WIN
+  SLOT_CHALLENGE_REWARD
+  SLOT_ADMIN_BONUS
 }
 
 enum GameSuggestionStatus {
@@ -107,23 +113,95 @@ enum SelectionRelationType {
   DEPENDENT
 }
 
+enum SlotConfigurationStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum SlotSymbolType {
+  REGULAR
+  HIGH_VALUE
+  WILD
+  SCATTER
+  BONUS
+}
+
+enum SlotSpinStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum SlotFeatureType {
+  MIEL_SMASH_WILD
+  MIEL_NUDGE
+  DOUBLE_SMASH
+  NUMBER_20_MULTIPLIER
+  BANANA_RAIN
+  MIEL_CELEBRATION
+}
+
+enum SlotBonusWheelSegmentType {
+  CREDITS
+  FREE_SPINS
+  MULTIPLIER
+  MINI_JACKPOT
+  MAJOR_JACKPOT
+  MIELPOT
+  MYSTERY_CHALLENGE
+}
+
+enum SlotFreeSpinSessionStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum SlotJackpotType {
+  MINI
+  MAJOR
+  MIELPOT
+}
+
+enum SlotJackpotTriggerType {
+  RANDOM
+  BONUS_WHEEL
+  SYMBOL_COMBINATION
+}
+
+enum SlotChallengeAssignmentStatus {
+  PENDING
+  COMPLETED
+  REJECTED
+  EXPIRED
+}
+
 model User {
-  id             String           @id @default(cuid())
-  participantId  String?
-  participant    Participant?      @relation(fields: [participantId], references: [id])
-  displayName    String
-  pinHash        String
-  role           UserRole
-  isActive       Boolean          @default(true)
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  createdEvents  Event[]          @relation("EventCreator")
-  eventBets      EventBet[]
-  wallet         Wallet?
-  suggestions    GameSuggestion[]
-  oddsOverrides  OddsOverride[]
-  auditLogs      AuditLog[]
-  betBuilders    FootballBetBuilder[]
+  id                       String                    @id @default(cuid())
+  participantId            String?
+  participant              Participant?              @relation(fields: [participantId], references: [id])
+  displayName              String
+  pinHash                  String
+  role                     UserRole
+  isActive                 Boolean                   @default(true)
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  createdEvents            Event[]                   @relation("EventCreator")
+  eventBets                EventBet[]
+  wallet                   Wallet?
+  suggestions              GameSuggestion[]
+  oddsOverrides            OddsOverride[]
+  auditLogs                AuditLog[]
+  betBuilders              FootballBetBuilder[]
+  slotConfigurations       SlotConfiguration[]
+  slotSpins                SlotSpin[]
+  slotFreeSpinSessions     SlotFreeSpinSession[]
+  slotJackpotWins          SlotJackpotWin[]
+  completedSlotChallenges  SlotChallengeAssignment[] @relation("CompletedSlotChallenges")
+  slotChallengeAssignments SlotChallengeAssignment[] @relation("AssignedSlotChallenges")
+  lastWonSlotJackpots      SlotJackpot[]             @relation("SlotJackpotLastWinner")
 
   @@index([role])
   @@index([participantId])
@@ -170,22 +248,22 @@ model ParticipantAttribute {
 }
 
 model GameTemplate {
-  id                  String                  @id @default(cuid())
-  name                String
-  description         String?
-  rules               String?
-  format              GameFormat
-  teamCount           Int
-  minPlayersPerTeam   Int
-  maxPlayersPerTeam   Int
-  exactTeamSize       Int?
-  defaultMargin       Decimal                 @default(0.10) @db.Decimal(6, 4)
-  defaultSensitivity  Decimal                 @default(1.20) @db.Decimal(6, 4)
-  isActive            Boolean                 @default(true)
-  createdAt           DateTime                @default(now())
-  updatedAt           DateTime                @updatedAt
-  attributes          GameTemplateAttribute[]
-  events              Event[]
+  id                 String                  @id @default(cuid())
+  name               String
+  description        String?
+  rules              String?
+  format             GameFormat
+  teamCount          Int
+  minPlayersPerTeam  Int
+  maxPlayersPerTeam  Int
+  exactTeamSize      Int?
+  defaultMargin      Decimal                 @default(0.10) @db.Decimal(6, 4)
+  defaultSensitivity Decimal                 @default(1.20) @db.Decimal(6, 4)
+  isActive           Boolean                 @default(true)
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  attributes         GameTemplateAttribute[]
+  events             Event[]
 
   @@index([isActive])
   @@index([format])
@@ -267,21 +345,21 @@ model EventTeamMember {
 }
 
 model EventBet {
-  id               String        @id @default(cuid())
-  eventId          String
-  mielUserId       String
-  selectedTeamId   String
-  stake            Decimal       @db.Decimal(10, 2)
-  oddsAtPlacement  Decimal       @db.Decimal(8, 2)
-  potentialPayout  Decimal       @db.Decimal(10, 2)
-  payout           Decimal?      @db.Decimal(10, 2)
-  status           BetStatus     @default(PENDING)
-  placedAt         DateTime      @default(now())
-  settledAt        DateTime?
-  event            Event         @relation(fields: [eventId], references: [id])
-  mielUser         User          @relation(fields: [mielUserId], references: [id])
-  selectedTeam     EventTeam     @relation(fields: [selectedTeamId], references: [id])
-  transactions     WalletTransaction[]
+  id              String              @id @default(cuid())
+  eventId         String
+  mielUserId      String
+  selectedTeamId  String
+  stake           Decimal             @db.Decimal(10, 2)
+  oddsAtPlacement Decimal             @db.Decimal(8, 2)
+  potentialPayout Decimal             @db.Decimal(10, 2)
+  payout          Decimal?            @db.Decimal(10, 2)
+  status          BetStatus           @default(PENDING)
+  placedAt        DateTime            @default(now())
+  settledAt       DateTime?
+  event           Event               @relation(fields: [eventId], references: [id])
+  mielUser        User                @relation(fields: [mielUserId], references: [id])
+  selectedTeam    EventTeam           @relation(fields: [selectedTeamId], references: [id])
+  transactions    WalletTransaction[]
 
   @@unique([eventId, mielUserId])
   @@index([status])
@@ -295,40 +373,46 @@ model Wallet {
   updatedAt    DateTime            @updatedAt
   user         User                @relation(fields: [userId], references: [id])
   transactions WalletTransaction[]
+  slotSpins    SlotSpin[]
 }
 
 model WalletTransaction {
-  id                   String                 @id @default(cuid())
-  walletId             String
-  eventBetId           String?
-  footballBetBuilderId String?
-  amount               Decimal                @db.Decimal(10, 2)
-  type                 WalletTransactionType
-  description          String
-  createdAt            DateTime               @default(now())
-  wallet               Wallet                 @relation(fields: [walletId], references: [id])
-  eventBet             EventBet?              @relation(fields: [eventBetId], references: [id])
-  footballBetBuilder   FootballBetBuilder?    @relation(fields: [footballBetBuilderId], references: [id])
+  id                        String                   @id @default(cuid())
+  walletId                  String
+  eventBetId                String?
+  footballBetBuilderId      String?
+  slotSpinId                String?
+  slotChallengeAssignmentId String?
+  amount                    Decimal                  @db.Decimal(10, 2)
+  type                      WalletTransactionType
+  description               String
+  createdAt                 DateTime                 @default(now())
+  wallet                    Wallet                   @relation(fields: [walletId], references: [id])
+  eventBet                  EventBet?                @relation(fields: [eventBetId], references: [id])
+  footballBetBuilder        FootballBetBuilder?      @relation(fields: [footballBetBuilderId], references: [id])
+  slotSpin                  SlotSpin?                @relation(fields: [slotSpinId], references: [id])
+  slotChallengeAssignment   SlotChallengeAssignment? @relation(fields: [slotChallengeAssignmentId], references: [id])
 
   @@index([walletId, createdAt])
   @@index([type])
+  @@index([slotSpinId])
 }
 
 model GameSuggestion {
-  id                         String               @id @default(cuid())
-  submittedByUserId          String
-  title                      String
-  description                String
-  proposedRules              String?
-  proposedFormat             GameFormat?
-  proposedTeamCount          Int?
-  proposedPlayersPerTeam     Int?
-  proposedAttributesJson     Json?
-  status                     GameSuggestionStatus @default(SUBMITTED)
-  adminNotes                 String?
-  createdAt                  DateTime             @default(now())
-  updatedAt                  DateTime             @updatedAt
-  submittedByUser            User                 @relation(fields: [submittedByUserId], references: [id])
+  id                     String               @id @default(cuid())
+  submittedByUserId      String
+  title                  String
+  description            String
+  proposedRules          String?
+  proposedFormat         GameFormat?
+  proposedTeamCount      Int?
+  proposedPlayersPerTeam Int?
+  proposedAttributesJson Json?
+  status                 GameSuggestionStatus @default(SUBMITTED)
+  adminNotes             String?
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  submittedByUser        User                 @relation(fields: [submittedByUserId], references: [id])
 
   @@index([status])
 }
@@ -401,23 +485,23 @@ model FootballMarket {
 }
 
 model FootballSelection {
-  id                 String                         @id @default(cuid())
+  id                 String                        @id @default(cuid())
   footballMarketId   String
   label              String
   line               String?
-  calculatedOdds     Decimal?                       @db.Decimal(8, 2)
-  overriddenOdds     Decimal?                       @db.Decimal(8, 2)
-  finalOdds          Decimal                        @db.Decimal(8, 2)
-  eligibilityType    FootballEligibilityType        @default(ALWAYS_ALLOWED)
-  isManipulable      Boolean                        @default(false)
-  isWinningSelection Boolean                        @default(false)
-  resultStatus       SelectionResultStatus          @default(PENDING)
-  createdAt          DateTime                       @default(now())
-  updatedAt          DateTime                       @updatedAt
-  footballMarket     FootballMarket                 @relation(fields: [footballMarketId], references: [id], onDelete: Cascade)
+  calculatedOdds     Decimal?                      @db.Decimal(8, 2)
+  overriddenOdds     Decimal?                      @db.Decimal(8, 2)
+  finalOdds          Decimal                       @db.Decimal(8, 2)
+  eligibilityType    FootballEligibilityType       @default(ALWAYS_ALLOWED)
+  isManipulable      Boolean                       @default(false)
+  isWinningSelection Boolean                       @default(false)
+  resultStatus       SelectionResultStatus         @default(PENDING)
+  createdAt          DateTime                      @default(now())
+  updatedAt          DateTime                      @updatedAt
+  footballMarket     FootballMarket                @relation(fields: [footballMarketId], references: [id], onDelete: Cascade)
   builderSelections  FootballBetBuilderSelection[]
-  relationsA         FootballSelectionRelation[]    @relation("SelectionA")
-  relationsB         FootballSelectionRelation[]    @relation("SelectionB")
+  relationsA         FootballSelectionRelation[]   @relation("SelectionA")
+  relationsB         FootballSelectionRelation[]   @relation("SelectionB")
 
   @@index([footballMarketId])
   @@index([eligibilityType])
@@ -430,8 +514,8 @@ model FootballSelectionRelation {
   type         SelectionRelationType
   reason       String?
   createdAt    DateTime              @default(now())
-  selectionA   FootballSelection      @relation("SelectionA", fields: [selectionAId], references: [id], onDelete: Cascade)
-  selectionB   FootballSelection      @relation("SelectionB", fields: [selectionBId], references: [id], onDelete: Cascade)
+  selectionA   FootballSelection     @relation("SelectionA", fields: [selectionAId], references: [id], onDelete: Cascade)
+  selectionB   FootballSelection     @relation("SelectionB", fields: [selectionBId], references: [id], onDelete: Cascade)
 
   @@unique([selectionAId, selectionBId, type])
 }
@@ -467,8 +551,260 @@ model FootballBetBuilderSelection {
   footballSelectionId String
   oddsAtPlacement     Decimal               @db.Decimal(8, 2)
   resultStatus        SelectionResultStatus @default(PENDING)
-  betBuilder          FootballBetBuilder     @relation(fields: [betBuilderId], references: [id], onDelete: Cascade)
-  footballSelection   FootballSelection      @relation(fields: [footballSelectionId], references: [id])
+  betBuilder          FootballBetBuilder    @relation(fields: [betBuilderId], references: [id], onDelete: Cascade)
+  footballSelection   FootballSelection     @relation(fields: [footballSelectionId], references: [id])
 
   @@id([betBuilderId, footballSelectionId])
+}
+
+model SlotConfiguration {
+  id                       String                        @id @default(cuid())
+  version                  Int                           @unique
+  name                     String
+  status                   SlotConfigurationStatus       @default(DRAFT)
+  availableStakesJson      Json
+  targetRtp                Decimal?                      @db.Decimal(5, 2)
+  volatility               String
+  maxWinMultiplier         Int                           @default(50)
+  gorillaFeatureChance     Decimal                       @default(0.12) @db.Decimal(7, 6)
+  scatterFeatureChance     Decimal                       @default(0.10) @db.Decimal(7, 6)
+  bonusFeatureChance       Decimal                       @default(0.08) @db.Decimal(7, 6)
+  freeSpinRetriggerChance  Decimal                       @default(0.06) @db.Decimal(7, 6)
+  isPublished              Boolean                       @default(false)
+  publishedAt              DateTime?
+  createdByUserId          String?
+  createdBy                User?                         @relation(fields: [createdByUserId], references: [id])
+  createdAt                DateTime                      @default(now())
+  updatedAt                DateTime                      @updatedAt
+  symbols                  SlotSymbol[]
+  paylines                 SlotPayline[]
+  bonusWheelConfigurations SlotBonusWheelConfiguration[]
+  spins                    SlotSpin[]
+
+  @@index([status, isPublished])
+}
+
+model SlotSymbol {
+  id                    String            @id @default(cuid())
+  slotConfigurationId   String
+  name                  String
+  slug                  String
+  assetUrl              String
+  type                  SlotSymbolType
+  reelWeight            Int
+  payoutMultiplierTwo   Int?
+  payoutMultiplierThree Int?
+  isWild                Boolean           @default(false)
+  isScatter             Boolean           @default(false)
+  isBonus               Boolean           @default(false)
+  isActive              Boolean           @default(true)
+  sortOrder             Int               @default(0)
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  slotConfiguration     SlotConfiguration @relation(fields: [slotConfigurationId], references: [id], onDelete: Cascade)
+  winLines              SlotWinLine[]
+
+  @@unique([slotConfigurationId, slug])
+  @@index([slotConfigurationId, sortOrder])
+}
+
+model SlotPayline {
+  id                  String            @id @default(cuid())
+  slotConfigurationId String
+  name                String
+  positionsJson       Json
+  isActive            Boolean           @default(true)
+  sortOrder           Int               @default(0)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  slotConfiguration   SlotConfiguration @relation(fields: [slotConfigurationId], references: [id], onDelete: Cascade)
+  winLines            SlotWinLine[]
+
+  @@unique([slotConfigurationId, name])
+  @@index([slotConfigurationId, sortOrder])
+}
+
+model SlotSpin {
+  id                        String                    @id @default(cuid())
+  userId                    String
+  walletId                  String
+  configurationVersionId    String
+  idempotencyKey            String
+  stake                     Decimal                   @db.Decimal(10, 2)
+  initialGridJson           Json
+  finalGridJson             Json
+  evaluatedPaylinesJson     Json
+  baseWin                   Decimal                   @default(0) @db.Decimal(10, 2)
+  scatterWin                Decimal                   @default(0) @db.Decimal(10, 2)
+  featureWin                Decimal                   @default(0) @db.Decimal(10, 2)
+  bonusWin                  Decimal                   @default(0) @db.Decimal(10, 2)
+  jackpotWin                Decimal                   @default(0) @db.Decimal(10, 2)
+  uncappedWin               Decimal                   @default(0) @db.Decimal(10, 2)
+  finalWin                  Decimal                   @default(0) @db.Decimal(10, 2)
+  featureType               SlotFeatureType?
+  featurePayloadJson        Json?
+  bonusResultJson           Json?
+  jackpotResultJson         Json?
+  status                    SlotSpinStatus            @default(COMPLETED)
+  randomReference           String?
+  freeSpinSessionId         String?
+  balanceBefore             Decimal                   @db.Decimal(10, 2)
+  balanceAfterStake         Decimal                   @db.Decimal(10, 2)
+  balanceAfter              Decimal                   @db.Decimal(10, 2)
+  freeSpinsAwarded          Int                       @default(0)
+  createdAt                 DateTime                  @default(now())
+  completedAt               DateTime?
+  user                      User                      @relation(fields: [userId], references: [id])
+  wallet                    Wallet                    @relation(fields: [walletId], references: [id])
+  configuration             SlotConfiguration         @relation(fields: [configurationVersionId], references: [id])
+  freeSpinSession           SlotFreeSpinSession?      @relation("FreeSpinSpins", fields: [freeSpinSessionId], references: [id])
+  triggeringFreeSpinSession SlotFreeSpinSession?      @relation("TriggeringSpin")
+  winLines                  SlotWinLine[]
+  featureResults            SlotFeatureResult[]
+  jackpotWins               SlotJackpotWin[]
+  challengeAssignments      SlotChallengeAssignment[]
+  transactions              WalletTransaction[]
+
+  @@unique([userId, idempotencyKey])
+  @@index([createdAt])
+  @@index([status])
+  @@index([freeSpinSessionId])
+}
+
+model SlotWinLine {
+  id            String      @id @default(cuid())
+  slotSpinId    String
+  slotPaylineId String
+  symbolId      String
+  matchedCount  Int
+  multiplier    Int
+  winAmount     Decimal     @db.Decimal(10, 2)
+  slotSpin      SlotSpin    @relation(fields: [slotSpinId], references: [id], onDelete: Cascade)
+  slotPayline   SlotPayline @relation(fields: [slotPaylineId], references: [id])
+  symbol        SlotSymbol  @relation(fields: [symbolId], references: [id])
+
+  @@index([slotSpinId])
+}
+
+model SlotFeatureResult {
+  id          String          @id @default(cuid())
+  slotSpinId  String
+  type        SlotFeatureType
+  payloadJson Json
+  multiplier  Int?
+  winAmount   Decimal         @default(0) @db.Decimal(10, 2)
+  createdAt   DateTime        @default(now())
+  slotSpin    SlotSpin        @relation(fields: [slotSpinId], references: [id], onDelete: Cascade)
+}
+
+model SlotBonusWheelConfiguration {
+  id                  String                  @id @default(cuid())
+  slotConfigurationId String
+  isActive            Boolean                 @default(true)
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  slotConfiguration   SlotConfiguration       @relation(fields: [slotConfigurationId], references: [id], onDelete: Cascade)
+  segments            SlotBonusWheelSegment[]
+}
+
+model SlotBonusWheelSegment {
+  id                        String                      @id @default(cuid())
+  bonusWheelConfigurationId String
+  label                     String
+  type                      SlotBonusWheelSegmentType
+  value                     Int
+  weight                    Int
+  challengeId               String?
+  isActive                  Boolean                     @default(true)
+  sortOrder                 Int                         @default(0)
+  bonusWheelConfiguration   SlotBonusWheelConfiguration @relation(fields: [bonusWheelConfigurationId], references: [id], onDelete: Cascade)
+  challenge                 SlotChallenge?              @relation(fields: [challengeId], references: [id])
+
+  @@unique([bonusWheelConfigurationId, label])
+  @@index([bonusWheelConfigurationId, sortOrder])
+}
+
+model SlotFreeSpinSession {
+  id               String                    @id @default(cuid())
+  userId           String
+  triggeringSpinId String                    @unique
+  stake            Decimal                   @db.Decimal(10, 2)
+  awardedSpins     Int
+  remainingSpins   Int
+  totalWin         Decimal                   @default(0) @db.Decimal(10, 2)
+  status           SlotFreeSpinSessionStatus @default(ACTIVE)
+  createdAt        DateTime                  @default(now())
+  completedAt      DateTime?
+  user             User                      @relation(fields: [userId], references: [id])
+  triggeringSpin   SlotSpin                  @relation("TriggeringSpin", fields: [triggeringSpinId], references: [id])
+  spins            SlotSpin[]                @relation("FreeSpinSpins")
+
+  @@index([userId, status])
+}
+
+model SlotJackpot {
+  id               String                 @id @default(cuid())
+  type             SlotJackpotType        @unique
+  startAmount      Decimal                @db.Decimal(10, 2)
+  currentAmount    Decimal                @db.Decimal(10, 2)
+  contributionRate Decimal                @db.Decimal(7, 6)
+  maxAmount        Decimal?               @db.Decimal(10, 2)
+  triggerType      SlotJackpotTriggerType
+  triggerChance    Decimal?               @db.Decimal(7, 6)
+  isActive         Boolean                @default(true)
+  lastWinnerUserId String?
+  lastWonAt        DateTime?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  lastWinner       User?                  @relation("SlotJackpotLastWinner", fields: [lastWinnerUserId], references: [id])
+  wins             SlotJackpotWin[]
+}
+
+model SlotJackpotWin {
+  id            String      @id @default(cuid())
+  jackpotId     String
+  slotSpinId    String
+  userId        String
+  amount        Decimal     @db.Decimal(10, 2)
+  jackpotBefore Decimal     @db.Decimal(10, 2)
+  jackpotAfter  Decimal     @db.Decimal(10, 2)
+  createdAt     DateTime    @default(now())
+  jackpot       SlotJackpot @relation(fields: [jackpotId], references: [id])
+  slotSpin      SlotSpin    @relation(fields: [slotSpinId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id])
+
+  @@index([slotSpinId])
+}
+
+model SlotChallenge {
+  id                      String                    @id @default(cuid())
+  title                   String
+  description             String
+  rewardCredits           Int?
+  requiresAdminCompletion Boolean                   @default(true)
+  isActive                Boolean                   @default(true)
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+  wheelSegments           SlotBonusWheelSegment[]
+  assignments             SlotChallengeAssignment[]
+}
+
+model SlotChallengeAssignment {
+  id                String                        @id @default(cuid())
+  challengeId       String
+  slotSpinId        String
+  userId            String
+  status            SlotChallengeAssignmentStatus @default(PENDING)
+  completedByUserId String?
+  completedAt       DateTime?
+  createdAt         DateTime                      @default(now())
+  updatedAt         DateTime                      @updatedAt
+  challenge         SlotChallenge                 @relation(fields: [challengeId], references: [id])
+  slotSpin          SlotSpin                      @relation(fields: [slotSpinId], references: [id], onDelete: Cascade)
+  user              User                          @relation("AssignedSlotChallenges", fields: [userId], references: [id])
+  completedBy       User?                         @relation("CompletedSlotChallenges", fields: [completedByUserId], references: [id])
+  transactions      WalletTransaction[]
+
+  @@index([status])
+  @@index([userId])
 }

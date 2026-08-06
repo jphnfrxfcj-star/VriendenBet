@@ -15,6 +15,7 @@ export default async function AdminDashboardPage() {
     mielWallet,
     openEventBets,
     openBetBuilders,
+    slotSpins,
   ] = await getDashboardData()
 
   const metrics = [
@@ -22,6 +23,7 @@ export default async function AdminDashboardPage() {
     ['Af te handelen', String(pendingEvents), '/admin/evenementen'],
     ['Miels saldo', mielWallet ? formatCredits(Number(mielWallet.balance)) : 'Geen wallet', '/admin/wallet'],
     ['Open weddenschappen', String(openEventBets + openBetBuilders), '/admin/weddenschappen'],
+    ['Slot spins', String(slotSpins), '/admin/slot'],
     ['Open voetbalmarkten', String(openFootballMarkets), '/admin/voetbal'],
     ['Open voorstellen', String(openSuggestions), '/admin/voorstellen'],
   ]
@@ -115,12 +117,13 @@ async function getDashboardData() {
       prisma.wallet.findFirst({ where: { user: { role: 'MIEL' } }, include: { user: true } }),
       prisma.eventBet.count({ where: { status: 'PENDING' } }),
       prisma.footballBetBuilder.count({ where: { status: { in: ['DRAFT', 'PLACED'] } } }),
+      prisma.slotSpin.count(),
     ])
   } catch (error) {
     if (process.env.NODE_ENV === 'production') {
       throw error
     }
 
-    return [0, 0, 0, 0, [], [], [], null, 0, 0] as const
+    return [0, 0, 0, 0, [], [], [], null, 0, 0, 0] as const
   }
 }

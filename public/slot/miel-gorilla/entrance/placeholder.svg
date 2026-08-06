@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 270" role="img" aria-label="Miel gorilla entrance">
+  <rect width="360" height="270" fill="#102616"/>
+  <path d="M30 235C72 166 110 139 180 137s115 30 150 98" fill="#1b4a2e"/>
+  <circle cx="180" cy="104" r="70" fill="#2a211c"/>
+  <ellipse cx="180" cy="121" rx="61" ry="45" fill="#5d4936"/>
+  <circle cx="154" cy="101" r="8" fill="#f7f4df"/>
+  <circle cx="205" cy="101" r="8" fill="#f7f4df"/>
+  <path d="M155 144q25 16 50 0" fill="none" stroke="#111" stroke-width="7" stroke-linecap="round"/>
+  <path d="M92 186q88-41 176 0v57H92z" fill="#b7ff1a"/>
+  <text x="180" y="228" text-anchor="middle" font-family="Arial, sans-serif" font-size="44" font-weight="900" fill="#123d25">20</text>
+  <path d="M58 195h68M234 195h68" stroke="#facc15" stroke-width="12" stroke-linecap="round"/>
+</svg>

@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { hashPin } from '../lib/pin'
+import { defaultBonusWheelSegments, defaultSlotPaylines, defaultSlotSymbols } from '../lib/slot-machine'
 import {
   attributes,
   footballSelections,
@@ -221,6 +222,8 @@ async function main() {
     })),
   })
 
+  await seedSlotData(bert.id)
+
   await prisma.auditLog.create({
     data: {
       userId: bert.id,
@@ -230,6 +233,192 @@ async function main() {
       metadataJson: { project: 'MielBet' },
     },
   })
+}
+
+async function seedSlotData(adminUserId: string) {
+  const configuration = await prisma.slotConfiguration.upsert({
+    where: { version: 1 },
+    update: {
+      name: 'Miel Smash',
+      status: 'ACTIVE',
+      availableStakesJson: [5, 10, 25, 50],
+      targetRtp: 92,
+      volatility: 'Medium feestvolatiel',
+      maxWinMultiplier: 50,
+      gorillaFeatureChance: 0.12,
+      scatterFeatureChance: 0.1,
+      bonusFeatureChance: 0.08,
+      freeSpinRetriggerChance: 0.06,
+      isPublished: true,
+      publishedAt: new Date(),
+      createdByUserId: adminUserId,
+    },
+    create: {
+      version: 1,
+      name: 'Miel Smash',
+      status: 'ACTIVE',
+      availableStakesJson: [5, 10, 25, 50],
+      targetRtp: 92,
+      volatility: 'Medium feestvolatiel',
+      maxWinMultiplier: 50,
+      gorillaFeatureChance: 0.12,
+      scatterFeatureChance: 0.1,
+      bonusFeatureChance: 0.08,
+      freeSpinRetriggerChance: 0.06,
+      isPublished: true,
+      publishedAt: new Date(),
+      createdByUserId: adminUserId,
+    },
+  })
+
+  for (const slotSymbol of defaultSlotSymbols) {
+    await prisma.slotSymbol.upsert({
+      where: {
+        slotConfigurationId_slug: {
+          slotConfigurationId: configuration.id,
+          slug: slotSymbol.slug,
+        },
+      },
+      update: {
+        name: slotSymbol.name,
+        assetUrl: slotSymbol.assetUrl,
+        type: slotSymbol.type,
+        reelWeight: slotSymbol.reelWeight,
+        payoutMultiplierTwo: slotSymbol.payoutMultiplierTwo,
+        payoutMultiplierThree: slotSymbol.payoutMultiplierThree,
+        isWild: slotSymbol.isWild,
+        isScatter: slotSymbol.isScatter,
+        isBonus: slotSymbol.isBonus,
+        isActive: slotSymbol.isActive,
+        sortOrder: slotSymbol.sortOrder,
+      },
+      create: {
+        slotConfigurationId: configuration.id,
+        name: slotSymbol.name,
+        slug: slotSymbol.slug,
+        assetUrl: slotSymbol.assetUrl,
+        type: slotSymbol.type,
+        reelWeight: slotSymbol.reelWeight,
+        payoutMultiplierTwo: slotSymbol.payoutMultiplierTwo,
+        payoutMultiplierThree: slotSymbol.payoutMultiplierThree,
+        isWild: slotSymbol.isWild,
+        isScatter: slotSymbol.isScatter,
+        isBonus: slotSymbol.isBonus,
+        isActive: slotSymbol.isActive,
+        sortOrder: slotSymbol.sortOrder,
+      },
+    })
+  }
+
+  for (const payline of defaultSlotPaylines) {
+    await prisma.slotPayline.upsert({
+      where: {
+        slotConfigurationId_name: {
+          slotConfigurationId: configuration.id,
+          name: payline.name,
+        },
+      },
+      update: {
+        positionsJson: payline.positions,
+        isActive: payline.isActive,
+        sortOrder: payline.sortOrder,
+      },
+      create: {
+        slotConfigurationId: configuration.id,
+        name: payline.name,
+        positionsJson: payline.positions,
+        isActive: payline.isActive,
+        sortOrder: payline.sortOrder,
+      },
+    })
+  }
+
+  const challenges = await Promise.all(
+    [
+      ['Drink een pint', 'Neem een frisse feestpauze en laat de groep tellen.', 0],
+      ['Kies iemand voor een challenge', 'Miel kiest iemand die onmiddellijk een korte opdracht krijgt.', 25],
+      ['Speech van een minuut', 'Miel geeft een speech van exact een minuut.', 50],
+      ['Zing een refrein', 'Kies een refrein en breng het met overtuiging.', 25],
+    ].map(([title, description, rewardCredits]) =>
+      prisma.slotChallenge.upsert({
+        where: { id: `seed-slot-challenge-${String(title).toLowerCase().replaceAll(' ', '-')}` },
+        update: { title: String(title), description: String(description), rewardCredits: Number(rewardCredits), isActive: true },
+        create: {
+          id: `seed-slot-challenge-${String(title).toLowerCase().replaceAll(' ', '-')}`,
+          title: String(title),
+          description: String(description),
+          rewardCredits: Number(rewardCredits) || null,
+          requiresAdminCompletion: true,
+          isActive: true,
+        },
+      }),
+    ),
+  )
+
+  const bonusWheel =
+    (await prisma.slotBonusWheelConfiguration.findFirst({ where: { slotConfigurationId: configuration.id } })) ??
+    (await prisma.slotBonusWheelConfiguration.create({ data: { slotConfigurationId: configuration.id, isActive: true } }))
+  const mysteryChallenge = challenges[0]
+
+  for (const segment of defaultBonusWheelSegments) {
+    await prisma.slotBonusWheelSegment.upsert({
+      where: {
+        bonusWheelConfigurationId_label: {
+          bonusWheelConfigurationId: bonusWheel.id,
+          label: segment.label,
+        },
+      },
+      update: {
+        type: segment.type,
+        value: segment.value,
+        weight: segment.weight,
+        challengeId: segment.type === 'MYSTERY_CHALLENGE' ? mysteryChallenge.id : null,
+        isActive: segment.isActive,
+        sortOrder: segment.sortOrder,
+      },
+      create: {
+        bonusWheelConfigurationId: bonusWheel.id,
+        label: segment.label,
+        type: segment.type,
+        value: segment.value,
+        weight: segment.weight,
+        challengeId: segment.type === 'MYSTERY_CHALLENGE' ? mysteryChallenge.id : null,
+        isActive: segment.isActive,
+        sortOrder: segment.sortOrder,
+      },
+    })
+  }
+
+  await Promise.all(
+    [
+      ['MINI', 100, 100, 0.01, 300, 0.002],
+      ['MAJOR', 300, 300, 0.015, 900, 0.0008],
+      ['MIELPOT', 500, 500, 0.02, 1500, 0.0003],
+    ].map(([type, startAmount, currentAmount, contributionRate, maxAmount, triggerChance]) =>
+      prisma.slotJackpot.upsert({
+        where: { type: type as 'MINI' | 'MAJOR' | 'MIELPOT' },
+        update: {
+          startAmount: Number(startAmount),
+          currentAmount: Number(currentAmount),
+          contributionRate: Number(contributionRate),
+          maxAmount: Number(maxAmount),
+          triggerType: 'RANDOM',
+          triggerChance: Number(triggerChance),
+          isActive: true,
+        },
+        create: {
+          type: type as 'MINI' | 'MAJOR' | 'MIELPOT',
+          startAmount: Number(startAmount),
+          currentAmount: Number(currentAmount),
+          contributionRate: Number(contributionRate),
+          maxAmount: Number(maxAmount),
+          triggerType: 'RANDOM',
+          triggerChance: Number(triggerChance),
+          isActive: true,
+        },
+      }),
+    ),
+  )
 }
 
 main()

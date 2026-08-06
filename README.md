@@ -4,10 +4,11 @@ MielBet is een ludieke, besloten sportsbook-app voor een vrijgezellenweekend. Er
 
 ## Concept
 
-De app heeft twee gescheiden modules:
+De app heeft drie gescheiden modules:
 
 - Dynamische weekendspellen: admins maken speltemplates, selecteren eigenschappen en gewichten, Miel stelt teams samen en de server berekent odds.
 - Miels voetbalwedstrijd: admins beheren voetbalmarkten en odds, Miel combineert toegestane selecties in een betbuilder.
+- Miel Smash: een originele virtuele 3x3 slotmachine met Miel-walletcredits, server-side spins, free spins, jackpots en een adminconfiguratie.
 
 Alleen Miel kan inzetten en alleen Miel heeft een wallet. Bert en Jean zijn admins. Andere deelnemers zijn viewers en kunnen spelvoorstellen indienen.
 
@@ -57,7 +58,7 @@ Gebruik in productie een lange willekeurige `SESSION_SECRET` en een expliciete `
 
 ## Database
 
-Het Prisma-schema staat in `prisma/schema.prisma`. De eerste migratie staat in `prisma/migrations/202608060001_initial_mielbet`. Het model maakt onderscheid tussen users, fysieke deelnemers, eigenschappen, templates, events, teams, odds, bets, football markets, betbuilders, wallettransacties, spelvoorstellen en auditlogs.
+Het Prisma-schema staat in `prisma/schema.prisma`. De eerste migratie staat in `prisma/migrations/202608060001_initial_mielbet`. Slotmodellen staan in `prisma/migrations/202608060002_miel_smash_slot`. Het model maakt onderscheid tussen users, fysieke deelnemers, eigenschappen, templates, events, teams, odds, bets, football markets, betbuilders, slotconfiguraties, spins, jackpots, challenges, wallettransacties, spelvoorstellen en auditlogs.
 
 Belangrijke regels:
 
@@ -68,7 +69,7 @@ Belangrijke regels:
 
 ## Seeddata
 
-`npm run db:seed` maakt Bert en Jean als `ADMIN`, Miel als `MIEL`, alle andere deelnemers als `VIEWER`, Miels wallet met 1.000 credits, eigenschappen, scores, vijf speltemplates, een touwtrekken 4v4-event en een voorbeeldvoetbalwedstrijd.
+`npm run db:seed` maakt Bert en Jean als `ADMIN`, Miel als `MIEL`, alle andere deelnemers als `VIEWER`, Miels wallet met 1.000 credits, eigenschappen, scores, vijf speltemplates, een touwtrekken 4v4-event, een voorbeeldvoetbalwedstrijd en een actieve Miel Smash-configuratie.
 
 Voor lokale ontwikkeling kun je de tijdelijke pincode zetten via `SEED_PIN`. Zonder `SEED_PIN` gebruikt het seedscript lokaal `2525`; in productie weigert het script zonder expliciete `SEED_PIN`.
 
@@ -114,6 +115,33 @@ De server mag nooit vertrouwen op saldo, odds, payout of eligibility vanuit de c
 
 Alleen Miel heeft een wallet. Elke saldoverandering maakt een `WalletTransaction`. Inzetten, settlement en refunds moeten atomair gebeuren. Admincorrecties vereisen een reden en mogen het saldo niet negatief maken.
 
+## Miel Smash
+
+Miel Smash staat op `/slot`, live read-only op `/slot/live` en adminbeheer op `/admin/slot`.
+
+- Originele Vegas- en jungle-geinspireerde slot, zonder bestaande casino-assets, merknamen of beschermde personages.
+- Alleen gebruiker met rol `MIEL` kan spins uitvoeren. Admins beheren configuratie en zien statistieken, maar kiezen nooit een specifiek volgend resultaat.
+- Credits zijn uitsluitend virtueel, hebben geen geldwaarde, kunnen niet gekocht worden en kunnen niet gecasht worden.
+- De MVP gebruikt 3 rollen, 3 rijen, 5 paylines, inzetniveaus 5/10/25/50 credits, wild, scatter, bonuswiel, free spins, Miel Smash-features en MINI/MAJOR/MIELPOT-jackpots.
+- Symbolen, gewichten, multipliers, paylines, inzetniveaus, featurefrequenties, bonuswielsegmenten, jackpots en maximumwinst zijn database-configureerbaar.
+- Gepubliceerde configuraties worden niet destructief aangepast. Admins maken een conceptversie en publiceren die als nieuwe actieve versie.
+- Iedere spin krijgt een idempotency key met unieke constraint op gebruiker plus key, zodat retries geen dubbele inzet of dubbele uitbetaling veroorzaken.
+- De browser berekent geen winst en wijzigt geen wallet. Randomness, grid, features, bonuswiel, jackpots en walletmutaties gebeuren server-side in Prisma-transacties.
+- Spinresultaten bewaren initialGrid, finalGrid, paylines, base/scatter/feature/bonus/jackpotwin, uncappedWin, finalWin, saldo voor/na en free spins.
+- Free spins zitten in aparte sessies. De oorspronkelijke inzet blijft vast; free spins trekken geen inzet af.
+- Maximumwinst wordt per spin gecapt op `maxWinMultiplier * stake`; `uncappedWin` blijft bewaard voor adminstatistieken.
+- Reduced motion wordt ondersteund via browservoorkeur en een handmatige instelling: volledige animaties, beperkt of overslaan.
+- Audio staat bewust als UI-toggle/fallback klaar, maar er zijn nog geen echte audiobestanden meegeleverd. Gebruik alleen originele of licentievrije audio.
+- Placeholderassets voor de Miel-gorilla staan onder `public/slot/miel-gorilla/*/placeholder.svg` en kunnen later vervangen worden door Rive, Lottie, sprites of transparante WebM.
+
+Simulatie zonder wallet- of databasewijzigingen:
+
+```bash
+npm run slot:simulate -- --spins=100000 --seed=12345 --stake=10
+```
+
+De simulatie gebruikt reproduceerbare test-randomness met seed. Productiespins gebruiken cryptografisch veilige randomness vanuit de serverruntime. De initiële seed streeft naar ongeveer 90% tot 95% theoretische RTP, maar de effectieve RTP moet via simulatie en configuratietuning bevestigd worden.
+
 ## Betbuilder
 
 De betbuilderlogica staat in `lib/football.ts`.
@@ -136,6 +164,7 @@ npm run test:e2e
 ```
 
 De huidige tests dekken authenticatiehelpers, rolbeveiliging, weekendodds, Miel-eligibility, voetbalbetbuilder, settlement en walletregels.
+Slottests dekken de pure engine voor raster/paylines, wilds, scatters, idempotencygevoelige servercontracten via de datalaag waar mogelijk, maximumwinst en reproduceerbare simulatie.
 
 ## Netlify
 
@@ -167,6 +196,7 @@ Doe dat tegen dezelfde productie-`DATABASE_URL`, bijvoorbeeld via Netlify CLI/en
 - Admin CRUD-schermen zijn overzichtspagina's; volledige create/edit-formulieren zijn de volgende stap.
 - Login rate limiting is in-memory en moet in productie vervangen worden door een gedeelde store.
 - Settlementacties zijn als pure services en datamodel aanwezig; volledige admin settlement-serveractions moeten nog gekoppeld worden aan de UI.
+- Miel Smash heeft originele SVG-placeholderart en geen echte audio-assets. Definitieve artwork/audio kan later via dezelfde assetpaden of animatie-adapter worden vervangen.
 
 ## Volgende uitbreidingen
 

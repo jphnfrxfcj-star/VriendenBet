@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 270" role="img" aria-label="Miel gorilla idle">
+  <rect width="360" height="270" fill="#102616"/>
+  <circle cx="180" cy="110" r="72" fill="#29201b"/>
+  <circle cx="135" cy="123" r="42" fill="#342820"/>
+  <circle cx="225" cy="123" r="42" fill="#342820"/>
+  <ellipse cx="180" cy="124" rx="58" ry="46" fill="#574536"/>
+  <circle cx="158" cy="105" r="8" fill="#f7f4df"/>
+  <circle cx="202" cy="105" r="8" fill="#f7f4df"/>
+  <circle cx="158" cy="106" r="4" fill="#111"/>
+  <circle cx="202" cy="106" r="4" fill="#111"/>
+  <path d="M156 142q24 18 48 0" fill="none" stroke="#111" stroke-width="7" stroke-linecap="round"/>
+  <path d="M94 188q86-44 172 0v54H94z" fill="#b7ff1a"/>
+  <path d="M151 194h58v48h-58z" fill="#123d25"/>
+  <text x="180" y="228" text-anchor="middle" font-family="Arial, sans-serif" font-size="44" font-weight="900" fill="#b7ff1a">20</text>
+</svg>

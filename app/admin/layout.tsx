@@ -11,6 +11,7 @@ const items = [
   ['Evenementen', '/admin/evenementen'],
   ['Voetbal', '/admin/voetbal'],
   ['Weddenschappen', '/admin/weddenschappen'],
+  ['Slot', '/admin/slot'],
   ['Wallet', '/admin/wallet'],
   ['Voorstellen', '/admin/voorstellen'],
   ['Auditlog', '/admin/auditlog'],

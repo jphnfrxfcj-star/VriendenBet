@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Activity, ChevronDown, Home, Shield, Trophy, UserRound, WalletCards } from 'lucide-react'
+import { Activity, ChevronDown, Club, Home, Shield, Trophy, UserRound, WalletCards } from 'lucide-react'
 import { getSessionUser } from '@/lib/auth'
 import { wallet as demoWallet } from '@/lib/demo-data'
 import { prisma } from '@/lib/prisma'
@@ -10,8 +10,9 @@ const viewerItems = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/weekendspellen', label: 'Spellen', icon: Trophy },
   { href: '/match', label: 'Match', icon: Activity },
+  { href: '/slot', label: 'Slot', icon: Club },
   { href: '/live', label: 'Live', icon: WalletCards },
-  { href: '/deelnemers', label: 'Spelers', icon: UserRound },
+  { href: '/profiel', label: 'Profiel', icon: UserRound },
 ]
 
 export async function AppNav() {
@@ -19,13 +20,13 @@ export async function AppNav() {
   const mielBalance = canUseMielMode(user?.role) ? await getMielBalance(user.role === 'MIEL' ? user.userId : undefined) : null
   const items =
     user?.role === 'ADMIN'
-      ? viewerItems.map((item) =>
-          item.href === '/live'
-            ? { ...item, href: '/mijn-bets', label: 'Mijn bets' }
-            : item.href === '/deelnemers'
-            ? { href: '/admin', label: 'Admin', icon: Shield }
-            : item,
-        )
+          ? viewerItems.map((item) =>
+              item.href === '/live'
+                ? { ...item, href: '/mijn-bets', label: 'Mijn bets' }
+                : item.href === '/profiel'
+                ? { href: '/admin', label: 'Admin', icon: Shield }
+                : item,
+            )
       : user?.role === 'MIEL'
       ? viewerItems.map((item) => (item.href === '/live' ? { ...item, href: '/mijn-bets', label: 'Mijn bets' } : item))
       : viewerItems
@@ -43,6 +44,7 @@ export async function AppNav() {
           <nav className="hidden items-center gap-6 text-sm font-bold text-muted-foreground md:flex">
             <Link href="/weekendspellen">Weekendspellen</Link>
             <Link href="/match">Miels match</Link>
+            <Link href="/slot">Slot</Link>
             <Link href="/deelnemers">Deelnemers</Link>
             <Link href="/spel-voorstellen">Spel voorstellen</Link>
             {user?.role === 'ADMIN' ? (
@@ -75,10 +77,18 @@ export async function AppNav() {
                     Mijn weddenschappen
                   </Link>
                 ) : null}
+                <Link href="/slot" className="rounded px-3 py-2 text-muted-foreground hover:bg-secondary hover:text-foreground">
+                  Miel Smash
+                </Link>
                 {user.role === 'ADMIN' ? (
-                  <Link href="/admin/weddenschappen" className="rounded px-3 py-2 text-muted-foreground hover:bg-secondary hover:text-foreground">
-                    Admin weddenschappen
-                  </Link>
+                  <>
+                    <Link href="/admin/weddenschappen" className="rounded px-3 py-2 text-muted-foreground hover:bg-secondary hover:text-foreground">
+                      Admin weddenschappen
+                    </Link>
+                    <Link href="/admin/slot" className="rounded px-3 py-2 text-muted-foreground hover:bg-secondary hover:text-foreground">
+                      Slotbeheer
+                    </Link>
+                  </>
                 ) : null}
               </div>
             </details>
@@ -90,7 +100,7 @@ export async function AppNav() {
         </div>
       </header>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t bg-background/95 px-1 pb-[env(safe-area-inset-bottom)] pt-1 backdrop-blur md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-6 border-t bg-background/95 px-1 pb-[env(safe-area-inset-bottom)] pt-1 backdrop-blur md:hidden">
         {items.map((item) => (
           <Link
             key={item.href}

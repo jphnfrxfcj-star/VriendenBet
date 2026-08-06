@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 270" role="img" aria-label="Miel gorilla smash">
+  <rect width="360" height="270" fill="#102616"/>
+  <path d="M48 222l62-80M312 222l-62-80" stroke="#3b2b21" stroke-width="34" stroke-linecap="round"/>
+  <circle cx="180" cy="108" r="72" fill="#2a211c"/>
+  <ellipse cx="180" cy="126" rx="62" ry="46" fill="#5d4936"/>
+  <circle cx="156" cy="100" r="8" fill="#f7f4df"/>
+  <circle cx="204" cy="100" r="8" fill="#f7f4df"/>
+  <path d="M154 146q26-15 52 0" fill="none" stroke="#111" stroke-width="7" stroke-linecap="round"/>
+  <path d="M88 188q92-50 184 0v58H88z" fill="#b7ff1a"/>
+  <text x="180" y="230" text-anchor="middle" font-family="Arial, sans-serif" font-size="46" font-weight="900" fill="#123d25">20</text>
+  <path d="M43 228h274" stroke="#facc15" stroke-width="16" stroke-linecap="round"/>
+</svg>

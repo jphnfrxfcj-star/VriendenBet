@@ -17,7 +17,8 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "slot:simulate": "tsx scripts/slot-simulate.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.14.0",

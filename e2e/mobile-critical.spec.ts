@@ -7,4 +7,6 @@ test('mobiele kernnavigatie toont sportsbook flows', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Dynamische weekendspellen' })).toBeVisible()
   await page.locator('a[href="/match"]:visible').first().click()
   await expect(page.getByRole('heading', { name: 'Miels laatste match' })).toBeVisible()
+  await page.locator('a[href="/slot"]:visible').first().click()
+  await expect(page.getByRole('heading', { name: 'Miel Smash' })).toBeVisible()
 })

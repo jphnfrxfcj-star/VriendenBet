@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 270" role="img" aria-label="Miel gorilla nudge">
+  <rect width="360" height="270" fill="#102616"/>
+  <path d="M52 196h95M213 196h95" stroke="#3b2b21" stroke-width="28" stroke-linecap="round"/>
+  <circle cx="180" cy="105" r="70" fill="#2a211c"/>
+  <ellipse cx="180" cy="124" rx="60" ry="44" fill="#5d4936"/>
+  <circle cx="157" cy="102" r="8" fill="#f7f4df"/>
+  <circle cx="205" cy="102" r="8" fill="#f7f4df"/>
+  <path d="M156 144q24 14 48 0" fill="none" stroke="#111" stroke-width="7" stroke-linecap="round"/>
+  <path d="M90 187q90-43 180 0v56H90z" fill="#b7ff1a"/>
+  <text x="180" y="228" text-anchor="middle" font-family="Arial, sans-serif" font-size="44" font-weight="900" fill="#123d25">20</text>
+  <path d="M290 88l28 28-28 28" fill="none" stroke="#facc15" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -58,3 +58,57 @@ textarea {
     linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
   background-size: 44px 44px;
 }
+
+.slot-machine-shell {
+  background:
+    linear-gradient(90deg, rgba(250, 204, 21, 0.12), transparent 12%, transparent 88%, rgba(250, 204, 21, 0.12)),
+    radial-gradient(circle at top, rgba(183, 255, 26, 0.12), transparent 38rem),
+    linear-gradient(180deg, #102016, #08130d);
+}
+
+@keyframes slot-reel-pulse {
+  0%,
+  100% {
+    transform: translateY(0);
+    filter: brightness(1);
+  }
+  50% {
+    transform: translateY(2px);
+    filter: brightness(1.22);
+  }
+}
+
+@keyframes slot-smash {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-6px);
+  }
+  40% {
+    transform: translateX(6px);
+  }
+  60% {
+    transform: translateX(-4px);
+  }
+}
+
+@keyframes slot-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slot-machine-shell *,
+  .slot-machine-shell {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
