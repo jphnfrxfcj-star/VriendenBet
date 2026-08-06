@@ -362,6 +362,44 @@ export async function createEventTeamAction(formData: FormData) {
   return
 }
 
+export async function createEventTeamsFromTemplateAction(formData: FormData) {
+  const session = await adminUser()
+  const eventId = value(formData, 'eventId')
+  const event = await prisma.event.findUniqueOrThrow({
+    where: { id: eventId },
+    include: { gameTemplate: true, teams: true },
+  })
+  const missingCount = Math.max(0, event.gameTemplate.teamCount - event.teams.length)
+  if (!missingCount) return
+
+  const defaultNames = event.gameTemplate.teamCount === 2 ? ['Team Groen', 'Team Geel'] : []
+  const startIndex = event.teams.length
+  const teams = Array.from({ length: missingCount }, (_, index) => {
+    const teamNumber = startIndex + index + 1
+    return {
+      eventId,
+      name: defaultNames[startIndex + index] ?? `Team ${teamNumber}`,
+    }
+  })
+
+  await prisma.$transaction([
+    prisma.eventTeam.createMany({ data: teams }),
+    prisma.auditLog.create({
+      data: {
+        userId: session.userId,
+        action: 'EVENT_TEAMS_CREATED_FROM_TEMPLATE',
+        entityType: 'Event',
+        entityId: eventId,
+        metadataJson: { count: teams.length },
+      },
+    }),
+  ])
+  revalidatePath('/admin/evenementen')
+  revalidatePath('/admin/weddenschappen')
+  revalidatePath(`/weekendspellen/${eventId}`)
+  return
+}
+
 export async function setEventParticipantAction(formData: FormData) {
   const session = await adminUser()
   const eventId = value(formData, 'eventId')
@@ -379,6 +417,39 @@ export async function setEventParticipantAction(formData: FormData) {
   return
 }
 
+export async function setEventParticipantsAction(formData: FormData) {
+  const session = await adminUser()
+  const eventId = value(formData, 'eventId')
+  const participantIds = formData
+    .getAll('participantId')
+    .map((participantId) => String(participantId).trim())
+    .filter(Boolean)
+  const availableIds = new Set(
+    formData
+      .getAll('availableParticipantId')
+      .map((participantId) => String(participantId).trim())
+      .filter(Boolean),
+  )
+  if (!eventId || !participantIds.length) return
+
+  await prisma.$transaction(
+    participantIds.map((participantId) =>
+      prisma.eventParticipant.upsert({
+        where: { eventId_participantId: { eventId, participantId } },
+        update: { isAvailable: availableIds.has(participantId) },
+        create: { eventId, participantId, isAvailable: availableIds.has(participantId) },
+      }),
+    ),
+  )
+  await audit(session.userId, 'EVENT_PARTICIPANTS_BULK_UPDATED', 'EventParticipant', eventId, {
+    available: availableIds.size,
+    total: participantIds.length,
+  })
+  revalidatePath('/admin/evenementen')
+  revalidatePath(`/weekendspellen/${eventId}`)
+  return
+}
+
 export async function addEventTeamMemberAction(formData: FormData) {
   const session = await adminUser()
   const eventTeamId = value(formData, 'eventTeamId')
@@ -393,6 +464,83 @@ export async function addEventTeamMemberAction(formData: FormData) {
   })
   await audit(session.userId, 'EVENT_TEAM_MEMBER_ADDED', 'EventTeamMember', `${eventTeamId}:${participantId}`)
   revalidatePath('/admin/evenementen')
+  return
+}
+
+export async function setEventTeamMembersAction(formData: FormData) {
+  const session = await adminUser()
+  const eventTeamId = value(formData, 'eventTeamId')
+  const participantIds = formData
+    .getAll('participantId')
+    .map((participantId) => String(participantId).trim())
+    .filter(Boolean)
+  const team = await prisma.eventTeam.findUniqueOrThrow({ where: { id: eventTeamId } })
+
+  await prisma.$transaction(async (tx) => {
+    await tx.eventTeamMember.deleteMany({
+      where: {
+        OR: [
+          { eventTeamId },
+          {
+            eventId: team.eventId,
+            participantId: { in: participantIds },
+          },
+        ],
+      },
+    })
+    if (participantIds.length) {
+      await tx.eventTeamMember.createMany({
+        data: participantIds.map((participantId) => ({
+          eventTeamId,
+          eventId: team.eventId,
+          participantId,
+        })),
+        skipDuplicates: true,
+      })
+    }
+    await tx.auditLog.create({
+      data: {
+        userId: session.userId,
+        action: 'EVENT_TEAM_MEMBERS_SET',
+        entityType: 'EventTeam',
+        entityId: eventTeamId,
+        metadataJson: { count: participantIds.length },
+      },
+    })
+  })
+  revalidatePath('/admin/evenementen')
+  revalidatePath(`/weekendspellen/${team.eventId}`)
+  return
+}
+
+export async function setEventTeamOddsAction(formData: FormData) {
+  const session = await adminUser()
+  const id = value(formData, 'id')
+  const finalOdds = numberValue(formData, 'finalOdds')
+  if (finalOdds < 1.01) return
+
+  const current = await prisma.eventTeam.findUniqueOrThrow({ where: { id } })
+  await prisma.$transaction([
+    prisma.eventTeam.update({
+      where: { id },
+      data: {
+        calculatedOdds: current.calculatedOdds ?? finalOdds,
+        finalOdds,
+      },
+    }),
+    prisma.auditLog.create({
+      data: {
+        userId: session.userId,
+        action: 'EVENT_TEAM_ODDS_SET',
+        entityType: 'EventTeam',
+        entityId: id,
+        metadataJson: { finalOdds },
+      },
+    }),
+  ])
+  revalidatePath('/admin/evenementen')
+  revalidatePath('/admin/weddenschappen')
+  revalidatePath(`/weekendspellen/${current.eventId}`)
   return
 }
 

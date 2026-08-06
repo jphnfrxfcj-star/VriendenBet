@@ -92,7 +92,7 @@ export function Field({
   step?: string | number
 }) {
   return (
-    <label className="grid gap-2 text-sm font-black">
+    <label className="grid min-w-0 gap-2 text-sm font-black">
       {label}
       <Input
         name={name}
@@ -124,7 +124,7 @@ export function TextField({
   textareaClassName?: string
 }) {
   return (
-    <label className="grid gap-2 text-sm font-black">
+    <label className="grid min-w-0 gap-2 text-sm font-black">
       {label}
       <Textarea
         name={name}
@@ -149,7 +149,7 @@ export function SelectField({
   options: Array<{ value: string; label: string }>
 }) {
   return (
-    <label className="grid gap-2 text-sm font-black">
+    <label className="grid min-w-0 gap-2 text-sm font-black">
       {label}
       <Select name={name} defaultValue={defaultValue ?? undefined}>
         {options.map((option) => (
@@ -172,8 +172,8 @@ export function CheckField({
   defaultChecked?: boolean
 }) {
   return (
-    <label className="flex items-center gap-2 rounded-md border bg-secondary px-3 py-2 text-sm font-black">
-      <input name={name} type="checkbox" defaultChecked={defaultChecked} className="size-4 accent-lime-300" />
+    <label className="flex min-h-11 items-center gap-2 rounded-md border bg-secondary px-3 py-2 text-sm font-black">
+      <input name={name} type="checkbox" defaultChecked={defaultChecked} className="size-5 accent-lime-300" />
       {label}
     </label>
   )
