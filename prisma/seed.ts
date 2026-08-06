@@ -159,7 +159,7 @@ async function main() {
       gameTemplateId: templateRows[0].id,
       createdById: bert.id,
       participants: {
-        create: participants.slice(0, 12).map((participant) => ({
+        create: participants.map((participant) => ({
           participantId: participantByName.get(participant.name)!.id,
           isAvailable: true,
         })),

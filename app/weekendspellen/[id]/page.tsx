@@ -54,12 +54,24 @@ async function getWeekendEvent(id: string) {
       include: {
         gameTemplate: { include: { attributes: { include: { attribute: true } } } },
         participants: { include: { participant: { include: { attributes: { include: { attribute: true } } } } } },
-        teams: { include: { members: { include: { participant: true } } } },
+        teams: {
+          include: {
+            members: {
+              include: { participant: { include: { attributes: { include: { attribute: true } } } } },
+            },
+          },
+        },
       },
     })
     if (event) {
-      const activeParticipants = event.participants.length
-        ? event.participants.map((row) => row.participant)
+      const eventParticipantRows = event.participants.map((row) => row.participant)
+      const teamParticipantRows = event.teams.flatMap((team) => team.members.map((member) => member.participant))
+      const activeParticipants = eventParticipantRows.length || teamParticipantRows.length
+        ? Array.from(
+            new Map(
+              [...eventParticipantRows, ...teamParticipantRows].map((participant) => [participant.id, participant]),
+            ).values(),
+          )
         : await prisma.participant.findMany({
             where: { isActive: true },
             include: { attributes: { include: { attribute: true } } },
