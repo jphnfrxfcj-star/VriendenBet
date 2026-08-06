@@ -1,8 +1,9 @@
 'use client'
 
 import { useMemo, useState, useTransition } from 'react'
-import { Minus, Plus, RotateCcw, TicketCheck } from 'lucide-react'
-import { placeWeekendBetAction } from '@/app/actions/bets'
+import { useRouter } from 'next/navigation'
+import { Minus, Plus, RotateCcw, Save, TicketCheck } from 'lucide-react'
+import { placeWeekendBetAction, saveWeekendTeamsAction } from '@/app/actions/bets'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -41,6 +42,7 @@ export function TeamBuilder({
   exactTeamSize,
   eventId,
 }: TeamBuilderProps) {
+  const router = useRouter()
   const [teams, setTeams] = useState<TeamInput[]>(initialTeams)
   const [stake, setStake] = useState(50)
   const [selectedTeamId, setSelectedTeamId] = useState(initialTeams[0]?.id ?? '')
@@ -49,7 +51,10 @@ export function TeamBuilder({
   const [isPending, startTransition] = useTransition()
 
   const mielMode = canUseMielMode(role)
-  const editable = mielMode && !eventId && !ticket && ['OPEN_FOR_SELECTION', 'ODDS_READY'].includes(status)
+  const editable =
+    mielMode &&
+    !ticket &&
+    (eventId ? status === 'OPEN_FOR_SELECTION' : ['OPEN_FOR_SELECTION', 'ODDS_READY'].includes(status))
   const selectedParticipantIds = useMemo(
     () => new Set(teams.flatMap((team) => team.memberParticipantIds)),
     [teams],
@@ -154,6 +159,22 @@ export function TeamBuilder({
     })
   }
 
+  function saveTeams() {
+    if (!eventId || validationError || !editable) return
+
+    setMessage('')
+    startTransition(async () => {
+      const formData = new FormData()
+      formData.set('eventId', eventId)
+      formData.set('teams', JSON.stringify(teams))
+      const result = await saveWeekendTeamsAction(formData)
+      setMessage(result.message)
+      if (result.ok) {
+        router.refresh()
+      }
+    })
+  }
+
   return (
     <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
       <section className="grid gap-5">
@@ -167,10 +188,18 @@ export function TeamBuilder({
                 </p>
               </div>
               {editable ? (
-                <Button type="button" variant="secondary" onClick={() => setTeams(initialTeams)}>
-                  <RotateCcw className="size-4" />
-                  Reset
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  {eventId ? (
+                    <Button type="button" onClick={saveTeams} disabled={Boolean(validationError) || isPending}>
+                      <Save className="size-4" />
+                      {isPending ? 'Opslaan...' : 'Teams opslaan'}
+                    </Button>
+                  ) : null}
+                  <Button type="button" variant="secondary" onClick={() => setTeams(initialTeams)}>
+                    <RotateCcw className="size-4" />
+                    Reset
+                  </Button>
+                </div>
               ) : null}
             </div>
           </CardHeader>
@@ -237,7 +266,7 @@ export function TeamBuilder({
               </p>
             ) : eventId ? (
               <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-                Teams worden beheerd in admin. Miel en admins kunnen hier inzetten op Miels toegestane team.
+                Teams kunnen alleen aangepast worden zolang dit event in Teams kiezen staat.
               </p>
             ) : null}
             {validationError ? (

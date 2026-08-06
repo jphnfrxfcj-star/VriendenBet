@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache'
 import { requireRole } from '@/lib/auth'
 import { assertEventSelectionAllowed, assertFootballSelectionAllowed } from '@/lib/eligibility'
 import { assertCompatibleSelections, calculateBetBuilderOdds } from '@/lib/football'
+import type { TeamInput } from '@/lib/domain'
+import { assertValidTeamComposition, calculateTeamOdds } from '@/lib/odds'
 import { prisma } from '@/lib/prisma'
 import { assertStakeAllowed } from '@/lib/wallet'
 
@@ -23,6 +25,136 @@ function numberValue(formData: FormData, key: string, fallback = 0) {
 
 function roundMoney(value: number) {
   return Math.round(value * 100) / 100
+}
+
+export async function saveWeekendTeamsAction(formData: FormData): Promise<BetActionResult> {
+  const session = await requireRole(['ADMIN', 'MIEL'])
+  const eventId = value(formData, 'eventId')
+
+  try {
+    const teams = JSON.parse(value(formData, 'teams')) as TeamInput[]
+    await prisma.$transaction(async (tx) => {
+      const event = await tx.event.findUniqueOrThrow({
+        where: { id: eventId },
+        include: {
+          gameTemplate: { include: { attributes: { include: { attribute: true } } } },
+          teams: true,
+          participants: { include: { participant: { include: { attributes: { include: { attribute: true } } } } } },
+        },
+      })
+      if (event.status !== 'OPEN_FOR_SELECTION') {
+        throw new Error('Teams kunnen alleen aangepast worden zolang het event in Teams kiezen staat')
+      }
+      if (teams.length !== event.gameTemplate.teamCount) {
+        throw new Error(`Dit event verwacht exact ${event.gameTemplate.teamCount} teams`)
+      }
+
+      const exactTeamSize = event.gameTemplate.exactTeamSize ?? event.gameTemplate.maxPlayersPerTeam
+      assertValidTeamComposition(teams, exactTeamSize)
+
+      const availableParticipants = event.participants.length
+        ? event.participants.filter((row) => row.isAvailable).map((row) => row.participant)
+        : await tx.participant.findMany({
+            where: { isActive: true },
+            include: { attributes: { include: { attribute: true } } },
+          })
+      const availableParticipantIds = new Set(availableParticipants.map((participant) => participant.id))
+      for (const team of teams) {
+        for (const participantId of team.memberParticipantIds) {
+          if (!availableParticipantIds.has(participantId)) {
+            throw new Error('Een gekozen speler is niet beschikbaar voor dit event')
+          }
+        }
+      }
+
+      const dbTeams: TeamInput[] = []
+      for (const [index, team] of teams.entries()) {
+        const existing = event.teams.find((row) => row.id === team.id)
+        const dbTeam = existing
+          ? await tx.eventTeam.update({
+              where: { id: existing.id },
+              data: { name: team.name || existing.name },
+            })
+          : await tx.eventTeam.create({
+              data: {
+                eventId,
+                name: team.name || `Team ${index + 1}`,
+              },
+            })
+
+        dbTeams.push({
+          id: dbTeam.id,
+          name: dbTeam.name,
+          memberParticipantIds: team.memberParticipantIds,
+        })
+      }
+
+      await tx.eventTeamMember.deleteMany({ where: { eventId } })
+      await tx.eventTeamMember.createMany({
+        data: dbTeams.flatMap((team) =>
+          team.memberParticipantIds.map((participantId) => ({
+            eventTeamId: team.id,
+            eventId,
+            participantId,
+          })),
+        ),
+      })
+
+      const weights = Object.fromEntries(
+        event.gameTemplate.attributes.map((row) => [row.attribute.name, Number(row.weight)]),
+      )
+      const ratings = availableParticipants.map((participant) => ({
+        participantId: participant.id,
+        name: participant.name,
+        attributes: Object.fromEntries(
+          participant.attributes.map((score) => [
+            score.attribute.name,
+            {
+              attributeId: score.attribute.name,
+              minValue: score.attribute.minValue,
+              maxValue: score.attribute.maxValue,
+              score: score.score,
+            },
+          ]),
+        ),
+      }))
+      const odds = calculateTeamOdds(dbTeams, ratings, weights, {}, {
+        margin: Number(event.marginOverride ?? event.gameTemplate.defaultMargin),
+        sensitivity: Number(event.sensitivityOverride ?? event.gameTemplate.defaultSensitivity),
+      })
+
+      await Promise.all(
+        odds.map((odd) =>
+          tx.eventTeam.update({
+            where: { id: odd.teamId },
+            data: {
+              calculatedScore: odd.score,
+              calculatedProbability: odd.probability,
+              calculatedOdds: odd.calculatedOdds,
+              finalOdds: odd.finalOdds,
+            },
+          }),
+        ),
+      )
+      await tx.auditLog.create({
+        data: {
+          userId: session.userId,
+          action: 'EVENT_TEAMS_SAVED_BY_MIEL_MODE',
+          entityType: 'Event',
+          entityId: eventId,
+          metadataJson: { teams: dbTeams.length },
+        },
+      })
+    })
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : 'Teams opslaan is mislukt' }
+  }
+
+  revalidatePath('/weekendspellen')
+  revalidatePath(`/weekendspellen/${eventId}`)
+  revalidatePath('/admin/evenementen')
+  revalidatePath('/admin/weddenschappen')
+  return { ok: true, message: 'Teams opgeslagen. Odds zijn bijgewerkt.' }
 }
 
 export async function placeWeekendBetAction(formData: FormData): Promise<BetActionResult> {

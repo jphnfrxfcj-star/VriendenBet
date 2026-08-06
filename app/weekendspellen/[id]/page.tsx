@@ -16,10 +16,7 @@ export default async function WeekendGameDetailPage({ params }: { params: Promis
   const session = await getSessionUser()
   const initialTeams = event.teams.length
     ? event.teams
-    : [
-        { id: 'team-groen', name: 'Team Groen', memberParticipantIds: [] },
-        { id: 'team-geel', name: 'Team Geel', memberParticipantIds: [] },
-      ]
+    : createEmptyTeams(event.teamCount ?? 2)
 
   return (
     <div className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 md:py-10">
@@ -64,19 +61,17 @@ async function getWeekendEvent(id: string) {
       },
     })
     if (event) {
-      const eventParticipantRows = event.participants.map((row) => row.participant)
       const teamParticipantRows = event.teams.flatMap((team) => team.members.map((member) => member.participant))
-      const activeParticipants = eventParticipantRows.length || teamParticipantRows.length
-        ? Array.from(
-            new Map(
-              [...eventParticipantRows, ...teamParticipantRows].map((participant) => [participant.id, participant]),
-            ).values(),
-          )
+      const activeParticipantRows = event.participants.length
+        ? event.participants.filter((row) => row.isAvailable).map((row) => row.participant)
         : await prisma.participant.findMany({
             where: { isActive: true },
             include: { attributes: { include: { attribute: true } } },
             orderBy: { name: 'asc' },
           })
+      const activeParticipants = Array.from(
+        new Map([...activeParticipantRows, ...teamParticipantRows].map((participant) => [participant.id, participant])).values(),
+      )
       const miel = await prisma.user.findFirst({ where: { role: 'MIEL' }, select: { participantId: true } })
 
       return {
@@ -86,6 +81,7 @@ async function getWeekendEvent(id: string) {
         startsAt: event.startsAt?.toLocaleString('nl-BE') ?? 'Nog te bepalen',
         dbBacked: true,
         exactTeamSize: event.gameTemplate.exactTeamSize ?? event.gameTemplate.maxPlayersPerTeam,
+        teamCount: event.gameTemplate.teamCount,
         mielParticipantId: miel?.participantId,
         participants: activeParticipants.map((participant) => ({
           id: participant.id,
@@ -126,5 +122,14 @@ async function getWeekendEvent(id: string) {
   }
 
   const demoEvent = weekendEvents.find((item) => item.id === id)
-  return demoEvent ? { ...demoEvent, dbBacked: false, participants: [], participantRatings: [], weights: {} } : null
+  return demoEvent ? { ...demoEvent, dbBacked: false, teamCount: 2, participants: [], participantRatings: [], weights: {} } : null
+}
+
+function createEmptyTeams(teamCount: number) {
+  const defaultNames = teamCount === 2 ? ['Team Groen', 'Team Geel'] : []
+  return Array.from({ length: teamCount }, (_, index) => ({
+    id: `team-${index + 1}`,
+    name: defaultNames[index] ?? `Team ${index + 1}`,
+    memberParticipantIds: [],
+  }))
 }
