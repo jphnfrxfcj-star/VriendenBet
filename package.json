@@ -17,6 +17,7 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed:slot": "tsx scripts/seed-slot.ts",
     "db:studio": "prisma studio",
     "slot:simulate": "tsx scripts/slot-simulate.ts"
   },

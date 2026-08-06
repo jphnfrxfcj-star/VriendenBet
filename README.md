@@ -190,6 +190,12 @@ SEED_PIN="jouw-productie-pin" npm run db:seed
 
 Doe dat tegen dezelfde productie-`DATABASE_URL`, bijvoorbeeld via Netlify CLI/env of vanuit een veilige lokale shell.
 
+Heb je de bestaande database al eerder geseed en wil je alleen Miel Smash toevoegen na deze migratie, gebruik dan:
+
+```bash
+npm run db:seed:slot
+```
+
 ## Bekende MVP-beperkingen
 
 - De UI toont op veel pagina's demo-data, terwijl de Prisma-modellen en server actions klaarstaan voor echte databaseflows.
