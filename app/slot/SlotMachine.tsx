@@ -709,17 +709,29 @@ function SlotCelebrationOverlay({ celebration }: { celebration: Celebration }) {
     <div
       key={celebration.id}
       className={cn(
-        'pointer-events-none absolute inset-0 z-40 grid place-items-center bg-black/42 p-4 text-center',
+        'pointer-events-none absolute inset-0 z-40 grid place-items-center overflow-hidden bg-[#06110b] p-4 text-center',
         intense ? 'slot-celebration-intense' : 'slot-celebration',
       )}
     >
-      <div className="grid min-w-56 justify-items-center gap-2 rounded-md border border-primary/70 bg-[#08130d]/92 px-5 py-4 shadow-[0_0_46px_rgba(183,255,26,0.35)]">
+      <div className="slot-celebration-rays absolute inset-0" />
+      <div className="slot-celebration-shockwave absolute left-1/2 top-1/2 size-44 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-primary/70" />
+      <div className="slot-celebration-coin slot-celebration-coin-a">€</div>
+      <div className="slot-celebration-coin slot-celebration-coin-b">€</div>
+      <div className="slot-celebration-coin slot-celebration-coin-c">€</div>
+      <div className="relative z-10 grid w-full max-w-[min(92%,30rem)] justify-items-center gap-2 rounded-md border-2 border-primary bg-[#08130d] px-4 py-4 shadow-[0_0_70px_rgba(183,255,26,0.55)] sm:px-7 sm:py-6">
+        <Image
+          src="/slot/miel-gorilla/generated/miel-gorilla-v1.png"
+          alt=""
+          width={144}
+          height={180}
+          className="slot-celebration-miel h-20 w-auto object-contain drop-shadow-[0_0_22px_rgba(183,255,26,0.55)] sm:h-28"
+        />
         <p className="text-[11px] font-black uppercase text-amber-300">{celebration.kind === 'smash' ? 'Feature' : 'Resultaat'}</p>
-        <strong className="text-3xl font-black leading-none text-primary sm:text-5xl">{celebration.title}</strong>
+        <strong className="slot-celebration-title text-4xl font-black leading-none text-primary sm:text-6xl">{celebration.title}</strong>
         {typeof celebration.amount === 'number' ? (
-          <span className="slot-count-pop text-2xl font-black text-foreground sm:text-4xl">{formatCredits(celebration.amount)}</span>
+          <span className="slot-count-pop text-4xl font-black leading-none text-foreground sm:text-6xl">{formatCredits(celebration.amount)}</span>
         ) : null}
-        {celebration.detail ? <span className="max-w-72 text-sm font-bold text-muted-foreground">{celebration.detail}</span> : null}
+        {celebration.detail ? <span className="max-w-80 text-sm font-bold text-foreground/82">{celebration.detail}</span> : null}
       </div>
     </div>
   )
