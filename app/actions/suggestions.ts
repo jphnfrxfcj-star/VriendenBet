@@ -25,8 +25,8 @@ export async function submitSuggestionAction(input: unknown) {
       proposedFormat: parsed.data.proposedFormat,
       proposedTeamCount: parsed.data.proposedTeamCount,
       proposedPlayersPerTeam: parsed.data.proposedPlayersPerTeam,
-      proposedAttributesJson: parsed.data.proposedAttributes
-        ? { raw: parsed.data.proposedAttributes }
+      proposedAttributesJson: parsed.data.proposedAttributes.length
+        ? { selected: parsed.data.proposedAttributes }
         : undefined,
     },
   })

@@ -1,7 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { attributes as demoAttributes } from '@/lib/demo-data'
+import { prisma } from '@/lib/prisma'
 import { SuggestionForm } from './SuggestionForm'
 
-export default function SuggestionsPage() {
+export const dynamic = 'force-dynamic'
+
+export default async function SuggestionsPage() {
+  const attributeOptions = await getAttributeOptions()
+
   return (
     <div className="mx-auto grid w-full max-w-4xl gap-6 px-4 py-6 md:py-10">
       <div>
@@ -16,9 +22,26 @@ export default function SuggestionsPage() {
           <CardTitle>Nieuw voorstel</CardTitle>
         </CardHeader>
         <CardContent>
-          <SuggestionForm />
+          <SuggestionForm attributeOptions={attributeOptions} />
         </CardContent>
       </Card>
     </div>
   )
+}
+
+async function getAttributeOptions() {
+  try {
+    const attributes = await prisma.attribute.findMany({
+      where: { isActive: true },
+      orderBy: { name: 'asc' },
+      select: { name: true },
+    })
+    if (attributes.length) return attributes.map((attribute) => attribute.name)
+  } catch (error) {
+    if (process.env.NODE_ENV === 'production') {
+      throw error
+    }
+  }
+
+  return demoAttributes
 }

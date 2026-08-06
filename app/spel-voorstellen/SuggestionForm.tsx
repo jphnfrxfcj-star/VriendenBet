@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useForm } from 'react-hook-form'
+import { Plus, X } from 'lucide-react'
 import { submitSuggestionAction } from '@/app/actions/suggestions'
 import { Button } from '@/components/ui/button'
 import { Input, Textarea } from '@/components/ui/input'
@@ -14,24 +15,51 @@ type SuggestionValues = {
   proposedFormat?: 'TEAM' | 'INDIVIDUAL'
   proposedTeamCount?: number
   proposedPlayersPerTeam?: number
-  proposedAttributes?: string
+  proposedAttributes?: string[]
 }
 
-export function SuggestionForm() {
+export function SuggestionForm({ attributeOptions }: { attributeOptions: string[] }) {
   const [isPending, startTransition] = useTransition()
   const [message, setMessage] = useState('')
-  const { register, handleSubmit, reset } = useForm<SuggestionValues>({
+  const [selectedAttribute, setSelectedAttribute] = useState(attributeOptions[0] ?? '')
+  const [selectedAttributes, setSelectedAttributes] = useState<string[]>([])
+  const { register, handleSubmit, reset, watch } = useForm<SuggestionValues>({
     defaultValues: { proposedFormat: 'TEAM', proposedTeamCount: 2, proposedPlayersPerTeam: 4 },
   })
+  const format = watch('proposedFormat')
+  const isTeamGame = format !== 'INDIVIDUAL'
+  const availableAttributes = attributeOptions.filter((attribute) => !selectedAttributes.includes(attribute))
 
   function onSubmit(values: SuggestionValues) {
+    const payload: SuggestionValues = {
+      ...values,
+      proposedTeamCount: isTeamGame ? Number(values.proposedTeamCount) : undefined,
+      proposedPlayersPerTeam: isTeamGame ? Number(values.proposedPlayersPerTeam) : undefined,
+      proposedAttributes: selectedAttributes,
+    }
+
     startTransition(async () => {
-      const result = await submitSuggestionAction(values)
+      const result = await submitSuggestionAction(payload)
       setMessage(result.message)
       if (result.ok) {
         reset()
+        setSelectedAttributes([])
+        setSelectedAttribute(attributeOptions[0] ?? '')
       }
     })
+  }
+
+  function addAttribute() {
+    if (!selectedAttribute || selectedAttributes.includes(selectedAttribute)) return
+    setSelectedAttributes((current) => [...current, selectedAttribute])
+    setSelectedAttribute(availableAttributes.find((attribute) => attribute !== selectedAttribute) ?? '')
+  }
+
+  function removeAttribute(attribute: string) {
+    setSelectedAttributes((current) => current.filter((item) => item !== attribute))
+    if (!selectedAttribute) {
+      setSelectedAttribute(attribute)
+    }
   }
 
   return (
@@ -56,19 +84,62 @@ export function SuggestionForm() {
             <option value="INDIVIDUAL">Individueel</option>
           </Select>
         </label>
-        <label className="grid gap-2 text-sm font-black">
-          Teams
-          <Input type="number" min={1} max={8} {...register('proposedTeamCount')} />
-        </label>
-        <label className="grid gap-2 text-sm font-black">
-          Spelers/team
-          <Input type="number" min={1} max={12} {...register('proposedPlayersPerTeam')} />
-        </label>
+        {isTeamGame ? (
+          <>
+            <label className="grid gap-2 text-sm font-black">
+              Teams
+              <Input type="number" min={2} max={8} {...register('proposedTeamCount')} />
+            </label>
+            <label className="grid gap-2 text-sm font-black">
+              Spelers/team
+              <Input type="number" min={1} max={12} {...register('proposedPlayersPerTeam')} />
+            </label>
+          </>
+        ) : (
+          <div className="grid content-end rounded-md border bg-secondary p-3 text-sm font-bold text-muted-foreground sm:col-span-2">
+            Individueel spel: geen teaminfo nodig.
+          </div>
+        )}
       </div>
-      <label className="grid gap-2 text-sm font-black">
+      <div className="grid gap-2 text-sm font-black">
         Relevante eigenschappen
-        <Input {...register('proposedAttributes')} placeholder="kracht, geluk, communicatie..." />
-      </label>
+        <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+          <Select value={selectedAttribute} onChange={(event) => setSelectedAttribute(event.target.value)}>
+            {availableAttributes.length ? (
+              availableAttributes.map((attribute) => (
+                <option key={attribute} value={attribute}>
+                  {attribute}
+                </option>
+              ))
+            ) : (
+              <option value="">Alle parameters gekozen</option>
+            )}
+          </Select>
+          <Button type="button" variant="secondary" onClick={addAttribute} disabled={!selectedAttribute}>
+            <Plus className="size-4" />
+            Toevoegen
+          </Button>
+        </div>
+        {selectedAttributes.length ? (
+          <div className="flex flex-wrap gap-2">
+            {selectedAttributes.map((attribute) => (
+              <button
+                key={attribute}
+                type="button"
+                onClick={() => removeAttribute(attribute)}
+                className="inline-flex min-h-9 items-center gap-2 rounded-md bg-secondary px-3 text-xs font-black"
+              >
+                {attribute}
+                <X className="size-3.5" />
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+            Kies minstens de parameters die volgens jou de odds moeten beïnvloeden.
+          </p>
+        )}
+      </div>
       <Button type="submit" disabled={isPending}>
         {isPending ? 'Indienen...' : 'Voorstel indienen'}
       </Button>

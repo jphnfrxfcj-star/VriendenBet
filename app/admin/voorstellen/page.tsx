@@ -28,6 +28,20 @@ export default async function AdminSuggestionsPage() {
                   </p>
                   <p className="mt-2 text-sm">{suggestion.description}</p>
                   {suggestion.proposedRules ? <p className="mt-2 text-sm text-muted-foreground">{suggestion.proposedRules}</p> : null}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <SuggestionFact label="Format" value={suggestion.proposedFormat === 'INDIVIDUAL' ? 'Individueel' : 'Teamspel'} />
+                    {suggestion.proposedFormat !== 'INDIVIDUAL' ? (
+                      <>
+                        <SuggestionFact label="Teams" value={String(suggestion.proposedTeamCount ?? '-')} />
+                        <SuggestionFact label="Spelers/team" value={String(suggestion.proposedPlayersPerTeam ?? '-')} />
+                      </>
+                    ) : null}
+                    {getSuggestedAttributes(suggestion.proposedAttributesJson).map((attribute) => (
+                      <span key={attribute} className="rounded-md bg-card px-3 py-2 text-xs font-black text-primary">
+                        {attribute}
+                      </span>
+                    ))}
+                  </div>
                 </div>
                 <div className="grid gap-3 md:grid-cols-[220px_1fr_auto]">
                   <SelectField name="status" label="Status" defaultValue={suggestion.status} options={suggestionStatuses} />
@@ -45,4 +59,27 @@ export default async function AdminSuggestionsPage() {
       </AdminCard>
     </AdminPageShell>
   )
+}
+
+function SuggestionFact({ label, value }: { label: string; value: string }) {
+  return (
+    <span className="rounded-md bg-card px-3 py-2 text-xs font-black">
+      <span className="text-muted-foreground">{label}</span> {value}
+    </span>
+  )
+}
+
+function getSuggestedAttributes(value: unknown) {
+  if (!value || typeof value !== 'object') return []
+  const selected = (value as { selected?: unknown; raw?: unknown }).selected
+  if (Array.isArray(selected)) {
+    return selected.filter((item): item is string => typeof item === 'string')
+  }
+
+  const raw = (value as { raw?: unknown }).raw
+  if (typeof raw === 'string') {
+    return raw.split(',').map((item) => item.trim()).filter(Boolean)
+  }
+
+  return []
 }
