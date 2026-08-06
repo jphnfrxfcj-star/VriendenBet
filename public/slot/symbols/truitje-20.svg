@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Truitje 20">
+  <rect width="128" height="128" rx="24" fill="#102f1e"/>
+  <path d="M33 35l18-12 13 10 13-10 18 12-11 22-9-5v49H53V52l-9 5z" fill="#b7ff1a" stroke="#f7ffcf" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M55 34q9 8 18 0" fill="none" stroke="#123d25" stroke-width="5" stroke-linecap="round"/>
+  <text x="64" y="82" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="900" fill="#123d25">20</text>
+</svg>

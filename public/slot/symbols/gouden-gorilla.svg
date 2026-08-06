@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Gouden gorilla">
+  <rect width="128" height="128" rx="24" fill="#2b220b"/>
+  <circle cx="64" cy="54" r="32" fill="#facc15"/>
+  <circle cx="42" cy="62" r="18" fill="#d99a13"/>
+  <circle cx="86" cy="62" r="18" fill="#d99a13"/>
+  <ellipse cx="64" cy="68" rx="27" ry="22" fill="#ffe08a"/>
+  <circle cx="54" cy="54" r="5" fill="#111"/>
+  <circle cx="74" cy="54" r="5" fill="#111"/>
+  <path d="M51 76q13 10 26 0" fill="none" stroke="#111" stroke-width="5" stroke-linecap="round"/>
+  <path d="M40 104q24-20 48 0" fill="none" stroke="#b7ff1a" stroke-width="8" stroke-linecap="round"/>
+</svg>

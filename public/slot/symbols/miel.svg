@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Miel">
+  <rect width="128" height="128" rx="24" fill="#102f1e"/>
+  <circle cx="64" cy="55" r="30" fill="#4b3429"/>
+  <ellipse cx="64" cy="65" rx="25" ry="20" fill="#70533c"/>
+  <circle cx="54" cy="55" r="5" fill="#fff8cf"/>
+  <circle cx="74" cy="55" r="5" fill="#fff8cf"/>
+  <path d="M50 75q14 12 28 0" fill="none" stroke="#111" stroke-width="5" stroke-linecap="round"/>
+  <path d="M37 98q27-20 54 0v16H37z" fill="#b7ff1a"/>
+</svg>

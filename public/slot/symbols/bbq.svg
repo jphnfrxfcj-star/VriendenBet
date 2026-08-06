@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="BBQ">
+  <rect width="128" height="128" rx="24" fill="#183421"/>
+  <path d="M34 55h60a30 30 0 0 1-60 0z" fill="#f97316" stroke="#facc15" stroke-width="5"/>
+  <path d="M37 53h54" stroke="#111" stroke-width="6" stroke-linecap="round"/>
+  <path d="M45 94l-9 17M83 94l9 17" stroke="#d1d5db" stroke-width="6" stroke-linecap="round"/>
+  <path d="M51 38c-8-10 8-12 0-22M72 39c-7-9 9-13 2-23" stroke="#b7ff1a" stroke-width="6" stroke-linecap="round"/>
+</svg>

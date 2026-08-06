@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Bonus">
+  <rect width="128" height="128" rx="24" fill="#3a143d"/>
+  <circle cx="64" cy="64" r="43" fill="#f0abfc" stroke="#facc15" stroke-width="6"/>
+  <path d="M64 23v82M23 64h82M34 34l60 60M94 34L34 94" stroke="#7e22ce" stroke-width="4"/>
+  <circle cx="64" cy="64" r="16" fill="#facc15"/>
+  <text x="64" y="71" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" font-weight="900" fill="#1d0a1f">BON</text>
+</svg>

@@ -14,7 +14,10 @@ export default async function SlotPage() {
   const canSpin = user?.role === 'MIEL'
 
   return (
-    <div className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 md:py-10">
+    <div className="relative isolate w-full overflow-hidden">
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[780px] bg-[url('/slot/miel-smash-backdrop.jpg')] bg-cover bg-center opacity-55" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[780px] bg-gradient-to-b from-background/10 via-background/62 to-background" />
+      <div className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 md:py-10">
       <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
         <div className="min-w-0">
           <p className="mb-2 text-xs font-black uppercase text-amber-300">Miel only</p>
@@ -60,6 +63,7 @@ export default async function SlotPage() {
         </p>
       </section>
     </div>
+    </div>
   )
 }
 
@@ -93,6 +97,7 @@ async function getSlotPageData(userId?: string) {
       symbols: (configuration?.symbols ?? defaultSlotEngineConfig.symbols).map((symbol) => ({
         slug: symbol.slug,
         name: symbol.name,
+        assetUrl: symbol.assetUrl,
         type: symbol.type,
         isWild: symbol.isWild,
         isScatter: symbol.isScatter,
@@ -126,6 +131,7 @@ async function getSlotPageData(userId?: string) {
       symbols: defaultSlotEngineConfig.symbols.map((symbol) => ({
         slug: symbol.slug,
         name: symbol.name,
+        assetUrl: symbol.assetUrl,
         type: symbol.type,
         isWild: symbol.isWild,
         isScatter: symbol.isScatter,

@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState, useTransition } from 'react'
+import Image from 'next/image'
 import { Info, Minus, Plus, RotateCw, Volume2, VolumeX } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
@@ -11,6 +12,7 @@ import { spinSlotAction, type SlotSpinPayload } from './actions'
 type SymbolView = {
   slug: string
   name: string
+  assetUrl: string
   type: string
   isWild: boolean
   isScatter: boolean
@@ -79,6 +81,7 @@ export function SlotMachine({
   const [message, setMessage] = useState('')
   const [history, setHistory] = useState(recentSpins)
   const [freeSpins, setFreeSpins] = useState(activeFreeSpins)
+  const [isReeling, setIsReeling] = useState(false)
   const [muted, setMuted] = useState(true)
   const [animationLevel, setAnimationLevel] = useState<'full' | 'limited' | 'skip'>('full')
   const [gorillaState, setGorillaState] = useState<GorillaAnimationState>('idle')
@@ -102,17 +105,26 @@ export function SlotMachine({
     setPendingKey(idempotencyKey)
     setMessage('')
     setGorillaState('entrance')
+    setIsReeling(animationLevel !== 'skip')
 
     startTransition(async () => {
+      const startedAt = Date.now()
       const result = await spinSlotAction({ stake, idempotencyKey })
+      const minimumSpinMs = animationLevel === 'full' ? 1450 : animationLevel === 'limited' ? 650 : 0
+      const remainingMs = Math.max(0, minimumSpinMs - (Date.now() - startedAt))
+      if (remainingMs > 0) {
+        await new Promise((resolve) => window.setTimeout(resolve, remainingMs))
+      }
       if (!result.ok || !result.spin) {
         setMessage(result.message)
         setGorillaState('idle')
+        setIsReeling(false)
         setPendingKey(null)
         return
       }
 
       const spinResult = result.spin
+      setIsReeling(false)
       setGrid(spinResult.finalGrid)
       setBalance(spinResult.balanceAfter)
       setLastSpin(spinResult)
@@ -147,11 +159,29 @@ export function SlotMachine({
 
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-      <section className="slot-machine-shell overflow-hidden rounded-md border border-amber-300/35 bg-[#102016] p-3 shadow-2xl shadow-black/25 sm:p-5">
+      <section className="slot-machine-shell overflow-hidden rounded-md border border-amber-300/50 bg-[#102016] p-3 shadow-2xl shadow-black/25 sm:p-5">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-300/30 bg-black/35 px-4 py-3">
+          <div>
+            <p className="text-[11px] font-black uppercase text-amber-300">Temple reels</p>
+            <h2 className="text-2xl font-black leading-none text-foreground">Smash-kast</h2>
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-center text-xs font-black text-primary">
+            {jackpots.slice(0, 3).map((jackpot) => (
+              <div key={jackpot.type} className="rounded border border-amber-300/30 bg-[#112416] px-2 py-1">
+                <span className="block text-muted-foreground">{jackpot.type}</span>
+                {formatCredits(jackpot.currentAmount)}
+              </div>
+            ))}
+          </div>
+        </div>
         <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
-          <GorillaAnimation state={gorillaState} reduced={reduced} />
+          <GorillaAnimation
+            state={gorillaState}
+            reduced={reduced}
+            className="order-2 mx-auto w-full max-w-56 lg:order-none lg:max-w-none"
+          />
 
-          <div className="grid gap-4">
+          <div className="order-1 grid gap-4 lg:order-none">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <Metric label="Credits" value={formatCredits(balance)} />
               <Metric label="Inzet" value={hasFreeSpin ? 'Free spin' : formatCredits(stake)} />
@@ -159,42 +189,41 @@ export function SlotMachine({
               <Metric label="Free spins" value={String(freeSpins)} />
             </div>
 
-            <div
-              className={cn(
-                'grid aspect-square max-h-[min(70vh,520px)] min-h-72 w-full grid-cols-3 gap-2 rounded-md border border-amber-300/45 bg-[#08130d] p-2 sm:gap-3 sm:p-3',
-                isPending && animationLevel === 'full' ? 'animate-[slot-reel-pulse_700ms_ease-in-out_infinite]' : '',
-              )}
-              aria-label="Miel Smash rollen"
-            >
-              {grid.flatMap((row, rowIndex) =>
-                row.map((slug, reelIndex) => {
-                  const slotSymbol = symbolBySlug.get(slug)
-                  const winning = lastSpin?.evaluatedPaylines.some((line) =>
-                    line.positions.some((position) => position.row === rowIndex && position.reel === reelIndex),
-                  )
-                  return (
+            <div className="relative rounded-md border border-amber-300/55 bg-[#050b07] p-2 shadow-[0_0_50px_rgba(250,204,21,0.16)] sm:p-3">
+              <div
+                className={cn(
+                  'relative grid aspect-square max-h-[min(70vh,520px)] min-h-72 w-full grid-cols-3 gap-2 overflow-hidden rounded-md bg-[#08130d] p-2 sm:gap-3 sm:p-3',
+                  isReeling && animationLevel === 'full' ? 'animate-[slot-reel-pulse_700ms_ease-in-out_infinite]' : '',
+                )}
+                aria-label="Miel Smash rollen"
+              >
+                {[0, 1, 2].map((reelIndex) => (
+                  <div key={reelIndex} className="slot-reel-window">
                     <div
-                      key={`${rowIndex}-${reelIndex}`}
-                      className={cn(
-                        'grid min-h-0 place-items-center rounded-md border bg-[#123121] p-2 text-center shadow-inner',
-                        winning ? 'border-primary text-primary' : 'border-white/10 text-foreground',
-                        slotSymbol?.isWild ? 'bg-amber-300 text-[#11180d]' : '',
-                        slotSymbol?.isScatter ? 'bg-cyan-300 text-[#07171b]' : '',
-                        slotSymbol?.isBonus ? 'bg-fuchsia-300 text-[#1d0a1f]' : '',
-                      )}
+                      className={cn('grid h-full grid-rows-3 gap-2 sm:gap-3', isReeling ? 'slot-reel-strip' : '')}
+                      style={{ animationDelay: `${reelIndex * 110}ms`, animationDuration: `${520 + reelIndex * 95}ms` }}
                     >
-                      <div className="grid gap-1">
-                        <span className="text-2xl font-black leading-none sm:text-4xl">
-                          {visualBySlug[slug] ?? slug.slice(0, 2).toUpperCase()}
-                        </span>
-                        <span className="text-[10px] font-black uppercase leading-tight opacity-80 sm:text-xs">
-                          {slotSymbol?.name ?? slug}
-                        </span>
-                      </div>
+                      {(isReeling ? spinningSymbols(symbols, reelIndex) : [0, 1, 2].map((rowIndex) => grid[rowIndex][reelIndex])).map((slug, rowIndex) => {
+                        const visibleRow = isReeling ? rowIndex % 3 : rowIndex
+                        const winning = !isReeling && lastSpin?.evaluatedPaylines.some((line) =>
+                          line.positions.some((position) => position.row === visibleRow && position.reel === reelIndex),
+                        )
+                        return (
+                          <SymbolTile
+                            key={`${reelIndex}-${rowIndex}-${slug}`}
+                            slotSymbol={symbolBySlug.get(slug)}
+                            slug={slug}
+                            winning={Boolean(winning)}
+                            spinning={isReeling}
+                          />
+                        )
+                      })}
                     </div>
-                  )
-                }),
-              )}
+                  </div>
+                ))}
+                <PaylineOverlay lines={isReeling ? [] : lastSpin?.evaluatedPaylines ?? []} />
+                {isReeling ? <div className="pointer-events-none absolute inset-x-0 top-1/2 z-20 h-px bg-primary/80 shadow-[0_0_18px_hsl(var(--primary))]" /> : null}
+              </div>
             </div>
 
             <div className="grid gap-3 rounded-md border border-amber-300/25 bg-black/20 p-3 sm:grid-cols-[auto_1fr_auto] sm:items-center">
@@ -296,4 +325,78 @@ function Metric({ label, value }: { label: string; value: string }) {
       <p className="mt-1 truncate text-xl font-black text-primary sm:text-2xl">{value}</p>
     </div>
   )
+}
+
+function SymbolTile({
+  slotSymbol,
+  slug,
+  winning,
+  spinning,
+}: {
+  slotSymbol?: SymbolView
+  slug: string
+  winning: boolean
+  spinning: boolean
+}) {
+  return (
+    <div
+      className={cn(
+        'slot-symbol-tile grid min-h-0 place-items-center rounded-md border p-2 text-center shadow-inner',
+        winning ? 'slot-symbol-winning border-primary text-primary' : 'border-white/10 text-foreground',
+        slotSymbol?.isWild ? 'slot-symbol-wild' : '',
+        slotSymbol?.isScatter ? 'slot-symbol-scatter' : '',
+        slotSymbol?.isBonus ? 'slot-symbol-bonus' : '',
+        spinning ? 'slot-symbol-spinning' : '',
+      )}
+    >
+      <div className="grid justify-items-center gap-1">
+        {slotSymbol?.assetUrl ? (
+          <Image
+            src={slotSymbol.assetUrl}
+            alt=""
+            width={72}
+            height={72}
+            className="h-10 w-10 object-contain drop-shadow-[0_0_10px_rgba(250,204,21,0.35)] sm:h-16 sm:w-16"
+          />
+        ) : (
+          <span className="text-2xl font-black leading-none sm:text-4xl">{visualBySlug[slug] ?? slug.slice(0, 2).toUpperCase()}</span>
+        )}
+        <span className="max-w-full truncate text-[9px] font-black uppercase leading-tight opacity-85 sm:text-[11px]">
+          {slotSymbol?.name ?? slug}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function PaylineOverlay({ lines }: { lines: NonNullable<SlotSpinPayload['evaluatedPaylines']> }) {
+  if (!lines.length) return null
+
+  return (
+    <svg className="pointer-events-none absolute inset-0 z-30 h-full w-full" viewBox="0 0 300 300" aria-hidden="true">
+      {lines.map((line, index) => {
+        const points = line.positions
+          .map((position) => `${50 + position.reel * 100},${50 + position.row * 100}`)
+          .join(' ')
+        return (
+          <polyline
+            key={`${line.name}-${index}`}
+            points={points}
+            fill="none"
+            stroke={index % 2 === 0 ? '#b7ff1a' : '#facc15'}
+            strokeWidth="7"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="slot-payline"
+          />
+        )
+      })}
+    </svg>
+  )
+}
+
+function spinningSymbols(symbols: SymbolView[], reelIndex: number) {
+  const active = symbols.map((slotSymbol) => slotSymbol.slug)
+  if (!active.length) return emptyGrid.flat()
+  return Array.from({ length: 18 }, (_, index) => active[(index + reelIndex * 4) % active.length])
 }
