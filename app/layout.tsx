@@ -5,7 +5,7 @@ import { AppNav } from '@/components/AppNav'
 
 export const metadata: Metadata = {
   title: 'MielBet',
-  description: 'Ludiek fictief gokplatform met virtuele credits voor een besloten weekend.',
+  description: 'Ludiek fictief gokplatform met virtuele eurobudgetten voor een besloten weekend.',
 }
 
 export default function RootLayout({ children }: { children: ReactNode }) {

@@ -7,6 +7,8 @@ export function cn(...inputs: ClassValue[]) {
 
 export function formatCredits(value: number) {
   return new Intl.NumberFormat('nl-BE', {
+    style: 'currency',
+    currency: 'EUR',
     maximumFractionDigits: 0,
   }).format(value)
 }

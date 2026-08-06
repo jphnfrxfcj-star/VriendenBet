@@ -17,7 +17,7 @@ import {
   TextField,
 } from '../shared'
 import { prisma } from '@/lib/prisma'
-import { formatOdd } from '@/lib/utils'
+import { formatCredits, formatOdd } from '@/lib/utils'
 
 const matchStatuses = ['DRAFT', 'OPEN', 'LOCKED', 'LIVE', 'FINISHED', 'SETTLED', 'CANCELLED'].map((status) => ({
   value: status,
@@ -188,7 +188,7 @@ export default async function AdminFootballPage() {
                     <div className="mt-2 grid gap-2">
                       {match.betBuilders.map((builder) => (
                         <p key={builder.id} className="text-sm text-muted-foreground">
-                          {builder.mielUser.displayName} · {builder.status} · inzet {String(builder.stake)} · @{' '}
+                          {builder.mielUser.displayName} · {builder.status} · inzet {formatCredits(Number(builder.stake))} · @{' '}
                           {formatOdd(Number(builder.finalOdds))} ·{' '}
                           {builder.selections.map((selection) => selection.footballSelection.label).join(' + ')}
                         </p>

@@ -28,7 +28,7 @@ export default function HomePage() {
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">
             Twee ludieke modules: dynamische weekendspellen met ratings en een aparte betbuilder
-            voor Miels voetbalwedstrijd. Alleen virtuele credits, geen echt geld.
+            voor Miels voetbalwedstrijd. Alleen virtuele eurobudgetten, geen echt geld.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <Link className="inline-flex min-h-11 items-center rounded-md bg-primary px-4 py-2 text-sm font-black text-primary-foreground" href="/weekendspellen">

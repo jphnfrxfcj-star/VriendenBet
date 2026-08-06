@@ -1,6 +1,9 @@
 import Link from 'next/link'
 import { Activity, Home, Shield, Trophy, UserRound, WalletCards } from 'lucide-react'
 import { getSessionUser } from '@/lib/auth'
+import { wallet as demoWallet } from '@/lib/demo-data'
+import { prisma } from '@/lib/prisma'
+import { formatCredits } from '@/lib/utils'
 
 const viewerItems = [
   { href: '/', label: 'Home', icon: Home },
@@ -12,6 +15,7 @@ const viewerItems = [
 
 export async function AppNav() {
   const user = await getSessionUser()
+  const mielBalance = user?.role === 'MIEL' ? await getMielBalance(user.userId) : null
   const items =
     user?.role === 'ADMIN'
       ? viewerItems.map((item) => (item.href === '/deelnemers' ? { href: '/admin', label: 'Admin', icon: Shield } : item))
@@ -41,8 +45,16 @@ export async function AppNav() {
               </Link>
             ) : null}
           </nav>
-          <Link href={user ? '/profiel' : '/login'} className="rounded-md bg-secondary px-3 py-2 text-sm font-black">
-            {user?.displayName ?? 'Login'}
+          <Link
+            href={user ? '/profiel' : '/login'}
+            className="inline-flex min-h-11 items-center gap-2 rounded-md bg-secondary px-3 py-2 text-sm font-black"
+          >
+            <span>{user?.displayName ?? 'Login'}</span>
+            {mielBalance !== null ? (
+              <span className="rounded bg-primary px-2 py-1 text-xs text-primary-foreground">
+                {formatCredits(mielBalance)}
+              </span>
+            ) : null}
           </Link>
         </div>
       </header>
@@ -61,4 +73,17 @@ export async function AppNav() {
       </nav>
     </>
   )
+}
+
+async function getMielBalance(userId: string) {
+  try {
+    const wallet = await prisma.wallet.findUnique({ where: { userId } })
+    return wallet ? Number(wallet.balance) : null
+  } catch (error) {
+    if (process.env.NODE_ENV === 'production') {
+      throw error
+    }
+
+    return demoWallet.balance
+  }
 }

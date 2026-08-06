@@ -9,11 +9,11 @@ export type WalletState = {
 
 export function assertStakeAllowed(balance: number, stake: number) {
   if (!Number.isInteger(stake) || stake < 10) {
-    throw new Error('Minimuminzet is 10 credits')
+    throw new Error('Minimuminzet is €10')
   }
 
   if (stake > 250) {
-    throw new Error('Maximuminzet is 250 credits')
+    throw new Error('Maximuminzet is €250')
   }
 
   if (stake > balance) {

@@ -56,7 +56,7 @@ export default async function AdminDashboardPage() {
             {recentBets.length ? (
               recentBets.map((bet) => (
                 <p key={bet.id}>
-                  {bet.event.title} · {bet.selectedTeam.name} · {String(bet.stake)} · {bet.status}
+                  {bet.event.title} · {bet.selectedTeam.name} · {formatCredits(Number(bet.stake))} · {bet.status}
                 </p>
               ))
             ) : (

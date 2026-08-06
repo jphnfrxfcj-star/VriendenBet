@@ -38,7 +38,7 @@ export function calculateBetBuilderOdds(
   }
 
   if (stake < 10 || stake > 250) {
-    throw new Error('Inzet moet tussen 10 en 250 credits liggen')
+    throw new Error('Inzet moet tussen €10 en €250 liggen')
   }
 
   const correctionFactor = options.correctionFactor ?? 0.9

@@ -247,7 +247,7 @@ export function TeamBuilder({
         <Card>
           <CardHeader>
             <CardTitle>Inzetformulier</CardTitle>
-            <p className="text-sm text-muted-foreground">Alleen Miel kan inzetten. Maximaal 250 credits.</p>
+            <p className="text-sm text-muted-foreground">Alleen Miel kan inzetten. Maximaal €250.</p>
           </CardHeader>
           <CardContent className="grid gap-3">
             {odds.map((odd) => (

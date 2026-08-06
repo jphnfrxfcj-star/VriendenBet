@@ -17,7 +17,7 @@ import {
   TextField,
 } from '../shared'
 import { prisma } from '@/lib/prisma'
-import { formatOdd } from '@/lib/utils'
+import { formatCredits, formatOdd } from '@/lib/utils'
 
 const eventStatuses = [
   'DRAFT',
@@ -160,7 +160,7 @@ export default async function AdminEventsPage() {
                     <div className="mt-2 grid gap-2">
                       {event.bets.map((bet) => (
                         <p key={bet.id} className="text-sm text-muted-foreground">
-                          {bet.mielUser.displayName} koos {bet.selectedTeam.name} · inzet {String(bet.stake)} · @{' '}
+                          {bet.mielUser.displayName} koos {bet.selectedTeam.name} · inzet {formatCredits(Number(bet.stake))} · @{' '}
                           {String(bet.oddsAtPlacement)} · status {bet.status}
                         </p>
                       ))}
