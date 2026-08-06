@@ -163,6 +163,63 @@ textarea {
   animation: slot-count-pop 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+.slot-smash-video {
+  background: #06110b;
+  animation: slot-smash-video-in 180ms ease-out both;
+}
+
+.slot-smash-video video {
+  filter: saturate(1.12) contrast(1.05);
+}
+
+.slot-smash-fallback {
+  background:
+    radial-gradient(circle at 50% 32%, rgba(183, 255, 26, 0.18), transparent 18rem),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.62));
+}
+
+.slot-smash-block {
+  position: absolute;
+  top: -34%;
+  width: 28%;
+  height: 30%;
+  border: 2px solid rgba(250, 204, 21, 0.72);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.16), transparent 36%),
+    linear-gradient(180deg, #3a2a12, #15120a);
+  box-shadow:
+    inset 0 0 22px rgba(250, 204, 21, 0.18),
+    0 18px 38px rgba(0, 0, 0, 0.42);
+  animation: slot-block-drop 1600ms cubic-bezier(0.2, 0.88, 0.2, 1.02) both;
+}
+
+.slot-smash-block-a {
+  left: 8%;
+  animation-delay: 80ms;
+}
+
+.slot-smash-block-b {
+  left: 36%;
+  width: 30%;
+  animation-delay: 230ms;
+}
+
+.slot-smash-block-c {
+  right: 8%;
+  animation-delay: 390ms;
+}
+
+.slot-smash-impact {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 58%, rgba(250, 204, 21, 0.82), transparent 4rem),
+    radial-gradient(circle at 50% 58%, rgba(183, 255, 26, 0.48), transparent 11rem);
+  opacity: 0;
+  animation: slot-smash-impact 1600ms ease-out 720ms both;
+}
+
 @keyframes slot-reel-pulse {
   0%,
   100% {
@@ -279,6 +336,48 @@ textarea {
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes slot-smash-video-in {
+  from {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slot-block-drop {
+  0% {
+    transform: translateY(0) rotate(-6deg);
+  }
+  68% {
+    transform: translateY(118%) rotate(2deg);
+  }
+  82% {
+    transform: translateY(104%) rotate(-1deg);
+  }
+  100% {
+    transform: translateY(112%) rotate(0deg);
+  }
+}
+
+@keyframes slot-smash-impact {
+  0%,
+  22% {
+    opacity: 0;
+    transform: scale(0.62);
+  }
+  32% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.42);
   }
 }
 

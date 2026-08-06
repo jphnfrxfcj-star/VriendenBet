@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
 import Link from 'next/link'
 import { Shield, Tv } from 'lucide-react'
 import { SlotMachine } from './SlotMachine'
@@ -12,6 +14,7 @@ export default async function SlotPage() {
   const user = await getSessionUser()
   const data = await getSlotPageData(user?.userId)
   const canSpin = user?.role === 'MIEL'
+  const smashVideoSources = getSlotVideoSources('smash')
 
   return (
     <div className="relative isolate w-full overflow-hidden">
@@ -43,6 +46,7 @@ export default async function SlotPage() {
       <SlotMachine
         canSpin={canSpin}
         showAnimationControls={process.env.NODE_ENV !== 'production' || user?.role === 'ADMIN'}
+        smashVideoSources={smashVideoSources}
         initialBalance={data.balance}
         availableStakes={data.availableStakes}
         symbols={data.symbols}
@@ -65,6 +69,17 @@ export default async function SlotPage() {
       </section>
     </div>
     </div>
+  )
+}
+
+function getSlotVideoSources(name: string) {
+  const candidates = [
+    { src: `/slot/miel-gorilla/videos/${name}.webm`, type: 'video/webm' },
+    { src: `/slot/miel-gorilla/videos/${name}.mp4`, type: 'video/mp4' },
+  ]
+
+  return candidates.filter((candidate) =>
+    existsSync(join(process.cwd(), 'public', ...candidate.src.split('/').filter(Boolean))),
   )
 }
 

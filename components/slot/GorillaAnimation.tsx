@@ -26,7 +26,7 @@ export function GorillaAnimation({
     <div
       key={`${state}-${animationKey ?? 0}`}
       className={cn(
-        'relative aspect-[3/4] min-h-52 overflow-hidden rounded-md border border-amber-300/35 bg-[#102616]',
+        'relative aspect-[3/4] min-h-52 overflow-hidden rounded-md border border-amber-300/35 bg-[#102616] bg-[url("/slot/miel-smash-backdrop.jpg")] bg-cover bg-center',
         !reduced && state === 'entrance' ? 'animate-[slot-entrance_700ms_ease-out_1]' : '',
         !reduced && state === 'smash' ? 'animate-[slot-smash_500ms_ease-in-out_1]' : '',
         !reduced && state === 'nudge' ? 'animate-[slot-nudge_620ms_ease-in-out_1]' : '',
@@ -35,7 +35,8 @@ export function GorillaAnimation({
       )}
       aria-label="Originele cartoon-gorillaversie van Miel met voetbaltruitje nummer 20"
     >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(250,204,21,0.25),transparent_58%)]" />
+      <div className="absolute inset-0 bg-gradient-to-b from-[#183a20]/72 via-[#102616]/88 to-[#06110b]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(250,204,21,0.32),transparent_58%)]" />
       <Image
         src={assetByState[state]}
         alt=""

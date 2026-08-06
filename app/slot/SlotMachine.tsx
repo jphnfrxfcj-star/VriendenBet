@@ -35,6 +35,7 @@ type RecentSpinView = {
 type SlotMachineProps = {
   canSpin: boolean
   showAnimationControls?: boolean
+  smashVideoSources?: VideoSource[]
   initialBalance: number
   availableStakes: number[]
   symbols: SymbolView[]
@@ -42,6 +43,11 @@ type SlotMachineProps = {
   recentSpins: RecentSpinView[]
   activeFreeSpins: number
   initialGrid?: SlotSpinPayload['finalGrid']
+}
+
+type VideoSource = {
+  src: string
+  type: string
 }
 
 type CelebrationKind = 'win' | 'big-win' | 'mega-win' | 'jackpot' | 'free-spins' | 'free-spins-total' | 'smash'
@@ -60,6 +66,13 @@ type FreeSpinRun = {
   played: number
   totalWin: number
   lastWin: number
+}
+
+type SmashStage = {
+  id: number
+  sources: VideoSource[]
+  title: string
+  detail: string
 }
 
 const emptyGrid: SlotSpinPayload['finalGrid'] = [
@@ -98,6 +111,7 @@ function titleForWin(kind: CelebrationKind) {
 export function SlotMachine({
   canSpin,
   showAnimationControls = false,
+  smashVideoSources = [],
   initialBalance,
   availableStakes,
   symbols,
@@ -123,6 +137,7 @@ export function SlotMachine({
   const [autoSpinTarget, setAutoSpinTarget] = useState(10)
   const [autoSpinsRemaining, setAutoSpinsRemaining] = useState(0)
   const [celebration, setCelebration] = useState<Celebration | null>(null)
+  const [smashStage, setSmashStage] = useState<SmashStage | null>(null)
   const [freeSpinRun, setFreeSpinRun] = useState<FreeSpinRun | null>(() =>
     activeFreeSpins > 0
       ? {
@@ -136,6 +151,8 @@ export function SlotMachine({
   )
   const freeSpinRunRef = useRef(freeSpinRun)
   const reelsRef = useRef<HTMLDivElement>(null)
+  const smashTimerRef = useRef<number | null>(null)
+  const smashResolveRef = useRef<(() => void) | null>(null)
 
   const stake = availableStakes[stakeIndex] ?? availableStakes[0] ?? 5
   const hasFreeSpin = freeSpins > 0
@@ -171,6 +188,49 @@ export function SlotMachine({
     return () => window.clearTimeout(timer)
   }, [celebration])
 
+  const finishSmashTransition = useCallback(() => {
+    if (smashTimerRef.current) {
+      window.clearTimeout(smashTimerRef.current)
+      smashTimerRef.current = null
+    }
+    setSmashStage(null)
+    smashResolveRef.current?.()
+    smashResolveRef.current = null
+  }, [])
+
+  const playSmashTransition = useCallback((detail: string) => {
+    if (window.innerWidth < 768) {
+      window.setTimeout(() => reelsRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 50)
+    }
+    if (smashTimerRef.current) {
+      window.clearTimeout(smashTimerRef.current)
+      smashTimerRef.current = null
+    }
+    smashResolveRef.current?.()
+    smashResolveRef.current = null
+    setCelebration(null)
+    setSmashStage({
+      id: Date.now(),
+      sources: smashVideoSources,
+      title: 'MIEL SMASH',
+      detail,
+    })
+
+    return new Promise<void>((resolve) => {
+      smashResolveRef.current = resolve
+      smashTimerRef.current = window.setTimeout(finishSmashTransition, smashVideoSources.length ? 3600 : 2200)
+    })
+  }, [finishSmashTransition, smashVideoSources])
+
+  useEffect(() => {
+    return () => {
+      if (smashTimerRef.current) {
+        window.clearTimeout(smashTimerRef.current)
+      }
+      smashResolveRef.current?.()
+    }
+  }, [])
+
   function changeStake(direction: -1 | 1) {
     setStakeIndex((current) => Math.min(Math.max(current + direction, 0), availableStakes.length - 1))
   }
@@ -179,7 +239,7 @@ export function SlotMachine({
     if (kind === 'entrance' || kind === 'smash' || kind === 'nudge' || kind === 'celebrate' || kind === 'idle') {
       playGorilla(kind)
       if (kind === 'smash') {
-        showCelebration({ kind: 'smash', title: 'MIEL SMASH', detail: 'Animatie-test zonder spin.' })
+        void playSmashTransition('Animatie-test zonder spin of walletwijziging.')
       }
       return
     }
@@ -228,6 +288,11 @@ export function SlotMachine({
       const spinResult = result.spin
       const jackpotWin = spinResult.jackpotResult?.reduce((sum, jackpot) => sum + jackpot.amount, 0) ?? 0
       setIsReeling(false)
+      if (animationLevel === 'full' && spinResult.featureType) {
+        setGrid(spinResult.initialGrid)
+        playGorilla(spinResult.featureType.includes('NUDGE') ? 'nudge' : 'smash')
+        await playSmashTransition('Miel slaat blokken naar beneden voor een betere combinatie.')
+      }
       setGrid(spinResult.finalGrid)
       setBalance(spinResult.balanceAfter)
       setLastSpin(spinResult)
@@ -322,7 +387,7 @@ export function SlotMachine({
       setPendingKey(null)
       setIsSpinning(false)
     }
-  }, [animationLevel, canSpin, freeSpins, insufficientBalance, isSpinning, pendingKey, playGorilla, reduced, showCelebration, stake])
+  }, [animationLevel, canSpin, freeSpins, insufficientBalance, isSpinning, pendingKey, playGorilla, playSmashTransition, reduced, showCelebration, stake])
 
   useEffect(() => {
     if (!canSpin || busy || insufficientBalance) return
@@ -438,6 +503,7 @@ export function SlotMachine({
                 ))}
                 <PaylineOverlay lines={isReeling ? [] : lastSpin?.evaluatedPaylines ?? []} />
                 {isReeling ? <div className="pointer-events-none absolute inset-x-0 top-1/2 z-20 h-px bg-primary/80 shadow-[0_0_18px_hsl(var(--primary))]" /> : null}
+                {smashStage ? <SmashVideoOverlay muted={muted} stage={smashStage} onDone={finishSmashTransition} /> : null}
                 {celebration ? <SlotCelebrationOverlay celebration={celebration} /> : null}
               </div>
             </div>
@@ -589,6 +655,49 @@ export function SlotMachine({
           </section>
         ) : null}
       </aside>
+    </div>
+  )
+}
+
+function SmashVideoOverlay({
+  stage,
+  muted,
+  onDone,
+}: {
+  stage: SmashStage
+  muted: boolean
+  onDone: () => void
+}) {
+  return (
+    <div key={stage.id} className="slot-smash-video pointer-events-none absolute inset-0 z-50 overflow-hidden rounded-md">
+      <div className="absolute inset-0 bg-[url('/slot/miel-smash-backdrop.jpg')] bg-cover bg-center" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-[#102616]/45 to-black/75" />
+      {stage.sources.length ? (
+        <video
+          className="absolute inset-0 h-full w-full object-cover"
+          autoPlay
+          muted={muted}
+          playsInline
+          preload="auto"
+          onEnded={onDone}
+        >
+          {stage.sources.map((source) => (
+            <source key={source.src} src={source.src} type={source.type} />
+          ))}
+        </video>
+      ) : (
+        <div className="slot-smash-fallback absolute inset-0">
+          <div className="slot-smash-block slot-smash-block-a" />
+          <div className="slot-smash-block slot-smash-block-b" />
+          <div className="slot-smash-block slot-smash-block-c" />
+          <div className="slot-smash-impact" />
+        </div>
+      )}
+      <div className="absolute inset-x-3 bottom-3 grid justify-items-start rounded-md border border-primary/55 bg-[#06110b]/82 p-3 shadow-[0_0_40px_rgba(183,255,26,0.28)] sm:inset-x-5 sm:bottom-5 sm:p-4">
+        <span className="text-[11px] font-black uppercase text-amber-300">Feature video</span>
+        <strong className="text-3xl font-black leading-none text-primary sm:text-5xl">{stage.title}</strong>
+        <span className="mt-1 max-w-md text-sm font-bold text-foreground/88">{stage.detail}</span>
+      </div>
     </div>
   )
 }
