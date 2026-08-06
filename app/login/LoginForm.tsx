@@ -15,6 +15,8 @@ type LoginValues = {
   pin: string
 }
 
+const loginUsers = users.filter((user) => user.role === 'ADMIN' || user.role === 'MIEL')
+
 export function LoginForm() {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -42,7 +44,7 @@ export function LoginForm() {
       <label className="grid gap-2 text-sm font-black">
         Naam
         <Select {...register('displayName')}>
-          {users.map((user) => (
+          {loginUsers.map((user) => (
             <option key={user.displayName} value={user.displayName}>
               {user.displayName} · {roleOptionLabel(user.role)}
             </option>

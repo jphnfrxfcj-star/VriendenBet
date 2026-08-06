@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { openEventForBettingAction, openFootballMatchForBettingAction } from '../actions'
+import { openEventForBettingAction, openEventForTeamSelectionAction, openFootballMatchForBettingAction } from '../actions'
 import { AdminCard, AdminPageShell, EmptyState, SubmitButton } from '../shared'
 import { StatusBadge } from '@/components/StatusBadge'
 import { prisma } from '@/lib/prisma'
@@ -28,6 +28,7 @@ type BetOpenControl = {
   href: string
   readyLabel: string
   canOpen: boolean
+  canSelectTeams?: boolean
   blockedReason?: string
 }
 
@@ -104,6 +105,14 @@ function OpenControlList({ controls }: { controls: BetOpenControl[] }) {
               <Link href={control.href} className="inline-flex min-h-11 items-center rounded-md bg-secondary px-3 py-2 text-sm font-black">
                 Beheren
               </Link>
+              {control.kind === 'weekend' ? (
+                <form action={openEventForTeamSelectionAction}>
+                  <input type="hidden" name="id" value={control.id} />
+                  <SubmitButton disabled={!control.canSelectTeams}>
+                    {control.status === 'OPEN_FOR_SELECTION' ? 'Miel kan kiezen' : 'Laat Miel kiezen'}
+                  </SubmitButton>
+                </form>
+              ) : null}
               <form action={control.kind === 'weekend' ? openEventForBettingAction : openFootballMatchForBettingAction}>
                 <input type="hidden" name="id" value={control.id} />
                 <SubmitButton disabled={!control.canOpen}>
@@ -183,7 +192,8 @@ async function getBetOpenControls(): Promise<BetOpenControl[]> {
       const teamsWithOdds = event.teams.filter((team) => team.finalOdds).length
       const isClosed = ['BET_PLACED', 'IN_PROGRESS', 'SETTLED', 'CANCELLED'].includes(event.status)
       const isOpen = event.status === 'ODDS_READY'
-      const canOpen = !isOpen && !isClosed && teamsWithOdds >= 2
+      const canOpen = event.status === 'OPEN_FOR_SELECTION' && teamsWithOdds >= 2
+      const canSelectTeams = event.status === 'DRAFT'
       return {
         id: event.id,
         kind: 'weekend' as const,
@@ -193,7 +203,8 @@ async function getBetOpenControls(): Promise<BetOpenControl[]> {
         href: '/admin/evenementen',
         readyLabel: `${teamsWithOdds} teams met final odds · ${event.bets.length} bets`,
         canOpen,
-        blockedReason: canOpen || isOpen ? undefined : teamsWithOdds < 2 ? 'Voeg minstens twee teams met final odds toe.' : 'Deze status kan niet meer opengezet worden.',
+        canSelectTeams,
+        blockedReason: canOpen || isOpen ? undefined : event.status === 'DRAFT' ? 'Laat Miel eerst teams kiezen.' : teamsWithOdds < 2 ? 'Voeg minstens twee teams met final odds toe.' : 'Deze status kan niet meer opengezet worden.',
       }
     }),
     ...matches.map((match) => {

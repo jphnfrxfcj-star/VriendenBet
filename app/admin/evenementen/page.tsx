@@ -2,6 +2,7 @@ import {
   createEventAction,
   createEventTeamAction,
   createEventTeamsFromTemplateAction,
+  openEventForTeamSelectionAction,
   openEventForBettingAction,
   setEventParticipantsAction,
   setEventTeamMembersAction,
@@ -90,7 +91,8 @@ export default async function AdminEventsPage() {
               const availableCount = hasAvailabilityRows ? availableParticipants.length : participants.length
               const isOpen = event.status === 'ODDS_READY'
               const isClosed = closedEventStatuses.includes(event.status)
-              const canOpenBets = !isOpen && !isClosed && teamsWithOdds >= 2
+              const canLetMielChooseTeams = event.status === 'DRAFT'
+              const canOpenBets = event.status === 'OPEN_FOR_SELECTION' && teamsWithOdds >= 2
 
               return (
                 <article key={event.id} className="grid gap-4 rounded-md border bg-secondary p-4">
@@ -117,6 +119,12 @@ export default async function AdminEventsPage() {
                       <input type="hidden" name="eventId" value={event.id} />
                       <SubmitButton disabled={missingTeams === 0}>
                         {missingTeams ? `Maak ${missingTeams} teams` : 'Teams klaar'}
+                      </SubmitButton>
+                    </form>
+                    <form action={openEventForTeamSelectionAction}>
+                      <input type="hidden" name="id" value={event.id} />
+                      <SubmitButton disabled={!canLetMielChooseTeams}>
+                        {event.status === 'OPEN_FOR_SELECTION' ? 'Miel kan kiezen' : 'Laat Miel teams kiezen'}
                       </SubmitButton>
                     </form>
                     <form action={openEventForBettingAction}>
@@ -304,6 +312,10 @@ function statusLabel(status: string) {
 function openBlockedText(status: string, teamsWithOdds: number) {
   if (closedEventStatuses.includes(status)) {
     return 'Dit event is al gestart, afgehandeld of geannuleerd.'
+  }
+
+  if (status === 'DRAFT') {
+    return 'Klik eerst op Laat Miel teams kiezen.'
   }
 
   if (teamsWithOdds < 2) {

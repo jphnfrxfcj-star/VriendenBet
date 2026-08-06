@@ -307,6 +307,36 @@ export async function updateEventStatusAction(formData: FormData) {
   return
 }
 
+export async function openEventForTeamSelectionAction(formData: FormData) {
+  const session = await adminUser()
+  const id = value(formData, 'id')
+  const event = await prisma.event.findUniqueOrThrow({ where: { id } })
+  if (event.status !== 'DRAFT') {
+    throw new Error('Alleen concept-events kunnen naar Teams kiezen gezet worden')
+  }
+
+  await prisma.$transaction([
+    prisma.event.update({
+      where: { id },
+      data: { status: 'OPEN_FOR_SELECTION' },
+    }),
+    prisma.auditLog.create({
+      data: {
+        userId: session.userId,
+        action: 'EVENT_OPENED_FOR_TEAM_SELECTION',
+        entityType: 'Event',
+        entityId: id,
+        metadataJson: { previousStatus: event.status },
+      },
+    }),
+  ])
+  revalidatePath('/admin/evenementen')
+  revalidatePath('/admin/weddenschappen')
+  revalidatePath('/weekendspellen')
+  revalidatePath(`/weekendspellen/${id}`)
+  return
+}
+
 export async function openEventForBettingAction(formData: FormData) {
   const session = await adminUser()
   const id = value(formData, 'id')
@@ -316,6 +346,9 @@ export async function openEventForBettingAction(formData: FormData) {
   })
   if (['BET_PLACED', 'IN_PROGRESS', 'SETTLED', 'CANCELLED'].includes(event.status)) {
     throw new Error('Dit event kan niet meer opengezet worden')
+  }
+  if (event.status === 'DRAFT') {
+    throw new Error('Laat Miel eerst teams kiezen')
   }
   const readyTeams = event.teams.filter((team) => team.finalOdds)
   if (readyTeams.length < 2) {
