@@ -1,8 +1,8 @@
 'use client'
 
-import { useMemo, useState, useTransition } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
-import { Info, Minus, Plus, RotateCw, Volume2, VolumeX } from 'lucide-react'
+import { Info, Minus, Plus, Repeat2, RotateCw, Square, Volume2, VolumeX } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { GorillaAnimation, type GorillaAnimationState } from '@/components/slot/GorillaAnimation'
@@ -86,7 +86,9 @@ export function SlotMachine({
   const [animationLevel, setAnimationLevel] = useState<'full' | 'limited' | 'skip'>('full')
   const [gorillaState, setGorillaState] = useState<GorillaAnimationState>('idle')
   const [pendingKey, setPendingKey] = useState<string | null>(null)
-  const [isPending, startTransition] = useTransition()
+  const [isSpinning, setIsSpinning] = useState(false)
+  const [autoSpinTarget, setAutoSpinTarget] = useState(10)
+  const [autoSpinsRemaining, setAutoSpinsRemaining] = useState(0)
 
   const stake = availableStakes[stakeIndex] ?? availableStakes[0] ?? 5
   const hasFreeSpin = freeSpins > 0
@@ -94,20 +96,24 @@ export function SlotMachine({
   const insufficientBalance = effectiveCost > balance
   const symbolBySlug = useMemo(() => new Map(symbols.map((slotSymbol) => [slotSymbol.slug, slotSymbol])), [symbols])
   const reduced = animationLevel !== 'full'
+  const busy = isSpinning || Boolean(pendingKey)
+  const autoRunning = autoSpinsRemaining > 0
 
   function changeStake(direction: -1 | 1) {
     setStakeIndex((current) => Math.min(Math.max(current + direction, 0), availableStakes.length - 1))
   }
 
-  function spin() {
-    if (!canSpin || isPending || pendingKey || insufficientBalance) return
+  const spin = useCallback(async (mode: 'manual' | 'auto' | 'free' = 'manual') => {
+    if (!canSpin || isSpinning || pendingKey || insufficientBalance) return
+    const freeSpinAtStart = freeSpins > 0
     const idempotencyKey = crypto.randomUUID()
     setPendingKey(idempotencyKey)
+    setIsSpinning(true)
     setMessage('')
     setGorillaState('entrance')
     setIsReeling(animationLevel !== 'skip')
 
-    startTransition(async () => {
+    try {
       const startedAt = Date.now()
       const result = await spinSlotAction({ stake, idempotencyKey })
       const minimumSpinMs = animationLevel === 'full' ? 1450 : animationLevel === 'limited' ? 650 : 0
@@ -119,7 +125,9 @@ export function SlotMachine({
         setMessage(result.message)
         setGorillaState('idle')
         setIsReeling(false)
+        setAutoSpinsRemaining(0)
         setPendingKey(null)
+        setIsSpinning(false)
         return
       }
 
@@ -139,6 +147,9 @@ export function SlotMachine({
         ...items.slice(0, 7),
       ])
       setFreeSpins((current) => Math.max(0, current - (current > 0 ? 1 : 0) + spinResult.freeSpinsAwarded))
+      if (mode === 'auto' && !freeSpinAtStart) {
+        setAutoSpinsRemaining((current) => Math.max(0, current - 1))
+      }
       setMessage(result.message)
 
       if (animationLevel === 'skip') {
@@ -154,7 +165,42 @@ export function SlotMachine({
       }
       window.setTimeout(() => setGorillaState(spinResult.finalWin > 0 ? 'celebrate' : 'idle'), reduced ? 250 : 900)
       setPendingKey(null)
-    })
+      setIsSpinning(false)
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Spin mislukt')
+      setGorillaState('idle')
+      setIsReeling(false)
+      setAutoSpinsRemaining(0)
+      setPendingKey(null)
+      setIsSpinning(false)
+    }
+  }, [animationLevel, canSpin, freeSpins, insufficientBalance, isSpinning, pendingKey, reduced, stake])
+
+  useEffect(() => {
+    if (!canSpin || busy || insufficientBalance) return
+
+    if (freeSpins > 0) {
+      const timer = window.setTimeout(() => {
+        void spin('free')
+      }, animationLevel === 'skip' ? 120 : 700)
+      return () => window.clearTimeout(timer)
+    }
+
+    if (autoSpinsRemaining > 0) {
+      const timer = window.setTimeout(() => {
+        void spin('auto')
+      }, animationLevel === 'skip' ? 120 : 800)
+      return () => window.clearTimeout(timer)
+    }
+  }, [animationLevel, autoSpinsRemaining, busy, canSpin, freeSpins, insufficientBalance, spin])
+
+  function toggleAutoSpin() {
+    if (autoRunning) {
+      setAutoSpinsRemaining(0)
+      return
+    }
+    if (!canSpin || busy || insufficientBalance) return
+    setAutoSpinsRemaining(autoSpinTarget)
   }
 
   return (
@@ -228,7 +274,7 @@ export function SlotMachine({
 
             <div className="grid gap-3 rounded-md border border-amber-300/25 bg-black/20 p-3 sm:grid-cols-[auto_1fr_auto] sm:items-center">
               <div className="flex items-center gap-2">
-                <Button type="button" variant="secondary" onClick={() => changeStake(-1)} disabled={stakeIndex === 0 || isPending} aria-label="Inzet verlagen">
+                <Button type="button" variant="secondary" onClick={() => changeStake(-1)} disabled={stakeIndex === 0 || busy || autoRunning} aria-label="Inzet verlagen">
                   <Minus className="size-4" />
                 </Button>
                 <div className="min-w-28 rounded-md bg-card px-3 py-2 text-center font-black">{formatCredits(stake)}</div>
@@ -236,7 +282,7 @@ export function SlotMachine({
                   type="button"
                   variant="secondary"
                   onClick={() => changeStake(1)}
-                  disabled={stakeIndex >= availableStakes.length - 1 || isPending}
+                  disabled={stakeIndex >= availableStakes.length - 1 || busy || autoRunning}
                   aria-label="Inzet verhogen"
                 >
                   <Plus className="size-4" />
@@ -245,11 +291,11 @@ export function SlotMachine({
 
               <Button
                 type="button"
-                onClick={spin}
-                disabled={!canSpin || isPending || Boolean(pendingKey) || insufficientBalance}
+                onClick={() => void spin('manual')}
+                disabled={!canSpin || busy || insufficientBalance || autoRunning}
                 className="min-h-14 text-lg"
               >
-                <RotateCw className={cn('size-5', isPending ? 'animate-spin' : '')} />
+                <RotateCw className={cn('size-5', isSpinning ? 'animate-spin' : '')} />
                 {hasFreeSpin ? 'FREE SPIN' : 'SPIN'}
               </Button>
 
@@ -266,6 +312,37 @@ export function SlotMachine({
                   <option value="skip">Overslaan</option>
                 </Select>
               </div>
+            </div>
+
+            <div className="grid gap-3 rounded-md border border-amber-300/25 bg-black/20 p-3 sm:grid-cols-[1fr_auto_auto] sm:items-center">
+              <div className="grid gap-1">
+                <p className="text-[11px] font-black uppercase leading-tight text-muted-foreground">Auto spin</p>
+                <p className="text-sm font-black text-primary">
+                  {freeSpins > 0 ? `Free spins automatisch: ${freeSpins}` : autoRunning ? `Nog ${autoSpinsRemaining} spins` : 'Kies aantal rondes'}
+                </p>
+              </div>
+              <Select
+                value={String(autoSpinTarget)}
+                onChange={(event) => setAutoSpinTarget(Number(event.target.value))}
+                disabled={busy || autoRunning}
+                className="w-full sm:w-28"
+                aria-label="Aantal auto spins"
+              >
+                {[5, 10, 25, 50].map((count) => (
+                  <option key={count} value={count}>
+                    {count}x
+                  </option>
+                ))}
+              </Select>
+              <Button
+                type="button"
+                variant={autoRunning ? 'danger' : 'secondary'}
+                onClick={toggleAutoSpin}
+                disabled={!canSpin || busy || (!autoRunning && insufficientBalance)}
+              >
+                {autoRunning ? <Square className="size-4" /> : <Repeat2 className="size-4" />}
+                {autoRunning ? 'Stop' : 'Start'}
+              </Button>
             </div>
 
             {message || insufficientBalance || !canSpin ? (
