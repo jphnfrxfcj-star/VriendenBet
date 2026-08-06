@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { requireRole } from '@/lib/auth'
@@ -14,7 +15,9 @@ const items = [
   ['Auditlog', '/admin/auditlog'],
 ]
 
-export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+export const dynamic = 'force-dynamic'
+
+export default async function AdminLayout({ children }: { children: ReactNode }) {
   try {
     await requireRole(['ADMIN'])
   } catch {
