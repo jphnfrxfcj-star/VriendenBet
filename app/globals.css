@@ -179,6 +179,30 @@ textarea {
   }
 }
 
+@keyframes slot-entrance {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes slot-nudge {
+  0%,
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+  30% {
+    transform: translateX(10px) rotate(2deg);
+  }
+  65% {
+    transform: translateX(-6px) rotate(-1deg);
+  }
+}
+
 @keyframes slot-bounce {
   0%,
   100% {
