@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { LoginForm } from './LoginForm'
 
 export default function LoginPage() {
@@ -7,7 +7,7 @@ export default function LoginPage() {
       <Card className="w-full">
         <CardHeader>
           <p className="text-xs font-black uppercase text-primary">Beveiligde toegang</p>
-          <CardTitle className="text-3xl">Login met pincode</CardTitle>
+          <h1 className="text-3xl font-black tracking-normal">Login met pincode</h1>
           <p className="text-sm text-muted-foreground">
             Kies je naam en gebruik je persoonlijke pincode. Pincodes worden gehasht opgeslagen.
           </p>

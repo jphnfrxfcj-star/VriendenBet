@@ -7,13 +7,15 @@ const viewerItems = [
   { href: '/weekendspellen', label: 'Spellen', icon: Trophy },
   { href: '/match', label: 'Match', icon: Activity },
   { href: '/live', label: 'Live', icon: WalletCards },
-  { href: '/deelnemers', label: 'Profiel', icon: UserRound },
+  { href: '/deelnemers', label: 'Spelers', icon: UserRound },
 ]
 
 export async function AppNav() {
   const user = await getSessionUser()
   const items =
-    user?.role === 'MIEL'
+    user?.role === 'ADMIN'
+      ? viewerItems.map((item) => (item.href === '/deelnemers' ? { href: '/admin', label: 'Admin', icon: Shield } : item))
+      : user?.role === 'MIEL'
       ? viewerItems.map((item) => (item.href === '/live' ? { ...item, href: '/mijn-bets', label: 'Mijn bets' } : item))
       : viewerItems
 

@@ -1,7 +1,7 @@
 import {
   createParticipantAction,
   createUserAction,
-  setParticipantScoreAction,
+  setParticipantScoresAction,
   updateParticipantAction,
   updateUserAction,
 } from '../actions'
@@ -68,26 +68,28 @@ export default async function AdminParticipantsPage() {
                     </span>
                   </div>
                   {attributes.length ? (
-                    <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                    <form action={setParticipantScoresAction} className="mt-3 grid gap-3">
+                      <input type="hidden" name="participantId" value={participant.id} />
+                      <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                       {attributes.map((attribute) => {
                         const existing = participant.attributes.find((score) => score.attributeId === attribute.id)
                         return (
-                          <form key={attribute.id} action={setParticipantScoreAction} className="flex items-end gap-2">
-                            <input type="hidden" name="participantId" value={participant.id} />
-                            <input type="hidden" name="attributeId" value={attribute.id} />
-                            <Field
-                              name="score"
-                              label={attribute.name}
-                              type="number"
-                              min={attribute.minValue}
-                              max={attribute.maxValue}
-                              defaultValue={existing?.score ?? attribute.minValue}
-                            />
-                            <SubmitButton>OK</SubmitButton>
-                          </form>
+                          <Field
+                            key={attribute.id}
+                            name={`score:${attribute.id}`}
+                            label={attribute.name}
+                            type="number"
+                            min={attribute.minValue}
+                            max={attribute.maxValue}
+                            defaultValue={existing?.score ?? attribute.minValue}
+                          />
                         )
                       })}
-                    </div>
+                      </div>
+                      <div>
+                        <SubmitButton>Ratings opslaan</SubmitButton>
+                      </div>
+                    </form>
                   ) : (
                     <EmptyState>Maak eerst eigenschappen aan om spelers te kunnen scoren.</EmptyState>
                   )}

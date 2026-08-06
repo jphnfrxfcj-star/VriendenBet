@@ -36,7 +36,20 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           ))}
         </nav>
       </aside>
-      <div>{children}</div>
+      <div className="grid gap-4">
+        <nav className="-mx-4 flex gap-2 overflow-x-auto border-y bg-card/80 px-4 py-2 md:hidden">
+          {items.map(([label, href]) => (
+            <Link
+              key={href}
+              href={href}
+              className="shrink-0 rounded-md bg-secondary px-3 py-2 text-xs font-black text-muted-foreground"
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
+        {children}
+      </div>
     </div>
   )
 }

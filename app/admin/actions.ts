@@ -170,6 +170,36 @@ export async function setParticipantScoreAction(formData: FormData) {
   return
 }
 
+export async function setParticipantScoresAction(formData: FormData) {
+  const session = await adminUser()
+  const participantId = value(formData, 'participantId')
+  const scores = Array.from(formData.entries())
+    .filter(([key]) => key.startsWith('score:'))
+    .map(([key, rawScore]) => ({
+      attributeId: key.replace('score:', ''),
+      score: Number(rawScore),
+    }))
+    .filter((score) => score.attributeId && Number.isFinite(score.score))
+
+  if (!participantId || !scores.length) return
+
+  await prisma.$transaction(
+    scores.map(({ attributeId, score }) =>
+      prisma.participantAttribute.upsert({
+        where: { participantId_attributeId: { participantId, attributeId } },
+        update: { score },
+        create: { participantId, attributeId, score },
+      }),
+    ),
+  )
+  await audit(session.userId, 'PARTICIPANT_SCORES_UPDATED', 'ParticipantAttribute', participantId, {
+    count: scores.length,
+  })
+  revalidatePath('/admin/eigenschappen')
+  revalidatePath('/admin/deelnemers')
+  return
+}
+
 export async function createTemplateAction(formData: FormData) {
   const session = await adminUser()
   const attributeId = optionalValue(formData, 'attributeId')
