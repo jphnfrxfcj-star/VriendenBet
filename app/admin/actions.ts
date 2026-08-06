@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/lib/auth'
 import { hashPin } from '@/lib/pin'
+import { settleBetBuilder } from '@/lib/football'
+import { settleWeekendBet } from '@/lib/settlement'
 
 async function adminUser() {
   return requireRole(['ADMIN'])
@@ -394,6 +396,88 @@ export async function overrideEventTeamOddsAction(formData: FormData) {
   return
 }
 
+export async function settleEventAction(formData: FormData) {
+  const session = await adminUser()
+  const eventId = value(formData, 'eventId')
+  const winningTeamId = optionalValue(formData, 'winningTeamId')
+  const eventStatus = value(formData, 'eventStatus') as 'SETTLED' | 'CANCELLED'
+
+  await prisma.$transaction(async (tx) => {
+    const event = await tx.event.findUniqueOrThrow({
+      where: { id: eventId },
+      include: {
+        teams: true,
+        bets: { where: { status: 'PENDING' }, include: { mielUser: { include: { wallet: true } } } },
+      },
+    })
+    if (eventStatus === 'SETTLED' && !winningTeamId) throw new Error('Winnaar is verplicht')
+    if (eventStatus === 'SETTLED' && !event.teams.some((team) => team.id === winningTeamId)) {
+      throw new Error('Winnaar hoort niet bij dit event')
+    }
+
+    await tx.eventTeam.updateMany({ where: { eventId }, data: { isWinningTeam: false } })
+    if (eventStatus === 'SETTLED' && winningTeamId) {
+      await tx.eventTeam.update({ where: { id: winningTeamId }, data: { isWinningTeam: true } })
+    }
+
+    for (const bet of event.bets) {
+      const result = settleWeekendBet({
+        currentStatus: bet.status,
+        stake: Number(bet.stake),
+        oddsAtPlacement: Number(bet.oddsAtPlacement),
+        selectedTeamId: bet.selectedTeamId,
+        winningTeamId,
+        eventStatus,
+      })
+      await tx.eventBet.update({
+        where: { id: bet.id },
+        data: {
+          status: result.status,
+          payout: result.payout || null,
+          settledAt: new Date(),
+        },
+      })
+      if (result.transactionType && result.payout > 0) {
+        const wallet = bet.mielUser.wallet
+        if (!wallet) throw new Error('Geen wallet gevonden voor Miel')
+        await tx.wallet.update({
+          where: { id: wallet.id },
+          data: { balance: Number(wallet.balance) + result.payout },
+        })
+        await tx.walletTransaction.create({
+          data: {
+            walletId: wallet.id,
+            eventBetId: bet.id,
+            amount: result.payout,
+            type: result.transactionType,
+            description: `${result.status === 'REFUNDED' ? 'Terugbetaling' : 'Uitbetaling'} ${event.title}`,
+          },
+        })
+      }
+    }
+
+    await tx.event.update({
+      where: { id: eventId },
+      data: { status: eventStatus, settledAt: new Date() },
+    })
+    await tx.auditLog.create({
+      data: {
+        userId: session.userId,
+        action: 'EVENT_SETTLED',
+        entityType: 'Event',
+        entityId: eventId,
+        metadataJson: { eventStatus, winningTeamId, settledBets: event.bets.length },
+      },
+    })
+  })
+
+  revalidatePath('/admin/evenementen')
+  revalidatePath('/admin')
+  revalidatePath('/mijn-bets')
+  revalidatePath(`/weekendspellen/${eventId}`)
+  return
+}
+
 export async function createFootballMatchAction(formData: FormData) {
   const session = await adminUser()
   const match = await prisma.footballMatch.create({
@@ -532,6 +616,97 @@ export async function overrideFootballSelectionOddsAction(formData: FormData) {
     }),
   ])
   revalidatePath('/admin/voetbal')
+  return
+}
+
+export async function settleFootballBetBuildersAction(formData: FormData) {
+  const session = await adminUser()
+  const footballMatchId = value(formData, 'footballMatchId')
+
+  await prisma.$transaction(async (tx) => {
+    const match = await tx.footballMatch.findUniqueOrThrow({ where: { id: footballMatchId } })
+    const builders = await tx.footballBetBuilder.findMany({
+      where: { footballMatchId, status: 'PLACED' },
+      include: {
+        mielUser: { include: { wallet: true } },
+        selections: { include: { footballSelection: true } },
+      },
+    })
+
+    for (const builder of builders) {
+      const resultInputs = builder.selections.map((selection) => ({
+        odds: Number(selection.oddsAtPlacement),
+        resultStatus: selection.footballSelection.resultStatus,
+      }))
+      if (resultInputs.some((selection) => selection.resultStatus === 'PENDING')) {
+        throw new Error('Niet alle selecties hebben een resultaat')
+      }
+
+      const settledInputs = resultInputs.map((selection) => ({
+        odds: selection.odds,
+        resultStatus: selection.resultStatus as 'WON' | 'LOST' | 'VOID',
+      }))
+      const result = settleBetBuilder(Number(builder.stake), settledInputs)
+      await tx.footballBetBuilder.update({
+        where: { id: builder.id },
+        data: {
+          status: result.status,
+          payout: result.payout || null,
+          settledAt: new Date(),
+        },
+      })
+      await Promise.all(
+        builder.selections.map((selection) =>
+          tx.footballBetBuilderSelection.update({
+            where: {
+              betBuilderId_footballSelectionId: {
+                betBuilderId: builder.id,
+                footballSelectionId: selection.footballSelectionId,
+              },
+            },
+            data: { resultStatus: selection.footballSelection.resultStatus },
+          }),
+        ),
+      )
+
+      if (result.payout > 0) {
+        const wallet = builder.mielUser.wallet
+        if (!wallet) throw new Error('Geen wallet gevonden voor Miel')
+        await tx.wallet.update({
+          where: { id: wallet.id },
+          data: { balance: Number(wallet.balance) + result.payout },
+        })
+        await tx.walletTransaction.create({
+          data: {
+            walletId: wallet.id,
+            footballBetBuilderId: builder.id,
+            amount: result.payout,
+            type: result.status === 'REFUNDED' ? 'BET_REFUND' : 'BET_WIN',
+            description: `${result.status === 'REFUNDED' ? 'Terugbetaling' : 'Uitbetaling'} ${match.title}`,
+          },
+        })
+      }
+    }
+
+    await tx.footballMatch.update({
+      where: { id: footballMatchId },
+      data: { status: 'SETTLED' },
+    })
+    await tx.auditLog.create({
+      data: {
+        userId: session.userId,
+        action: 'FOOTBALL_BETBUILDERS_SETTLED',
+        entityType: 'FootballMatch',
+        entityId: footballMatchId,
+        metadataJson: { settledBuilders: builders.length },
+      },
+    })
+  })
+
+  revalidatePath('/admin/voetbal')
+  revalidatePath('/admin')
+  revalidatePath('/mijn-bets')
+  revalidatePath('/match')
   return
 }
 

@@ -3,6 +3,7 @@ import {
   createEventAction,
   createEventTeamAction,
   overrideEventTeamOddsAction,
+  settleEventAction,
   setEventParticipantAction,
   updateEventStatusAction,
 } from '../actions'
@@ -167,6 +168,30 @@ export default async function AdminEventsPage() {
                     </div>
                   </div>
                 ) : null}
+
+                <div className="rounded-md border bg-background p-3">
+                  <h3 className="font-black">Resultaat en uitbetaling</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Settlement zet bets op gewonnen/verloren/terugbetaald en schrijft automatisch wallettransacties.
+                  </p>
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    <form action={settleEventAction} className="grid gap-3 rounded-md bg-secondary p-3">
+                      <input type="hidden" name="eventId" value={event.id} />
+                      <input type="hidden" name="eventStatus" value="SETTLED" />
+                      <SelectField
+                        name="winningTeamId"
+                        label="Winnende ploeg"
+                        options={event.teams.map((team) => ({ value: team.id, label: team.name }))}
+                      />
+                      <SubmitButton>Winnaar bevestigen en uitbetalen</SubmitButton>
+                    </form>
+                    <form action={settleEventAction} className="grid content-end gap-3 rounded-md bg-secondary p-3">
+                      <input type="hidden" name="eventId" value={event.id} />
+                      <input type="hidden" name="eventStatus" value="CANCELLED" />
+                      <SubmitButton>Event annuleren en terugbetalen</SubmitButton>
+                    </form>
+                  </div>
+                </div>
               </div>
             ))
           ) : (

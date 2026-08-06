@@ -1,15 +1,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { StatusBadge } from '@/components/StatusBadge'
 import { OddsButton } from '@/components/OddsButton'
 import { footballMatch } from '@/lib/demo-data'
 import { getEligibleFootballSelectionsForMiel } from '@/lib/eligibility'
-import { formatCredits, formatOdd } from '@/lib/utils'
+import { prisma } from '@/lib/prisma'
+import { BetBuilder } from './BetBuilder'
 
-export default function MatchPage() {
-  const eligible = getEligibleFootballSelectionsForMiel(footballMatch.selections, true)
-  const selected = eligible.slice(0, 3)
+export const dynamic = 'force-dynamic'
+
+export default async function MatchPage() {
+  const match = await getMatchData()
 
   return (
     <div className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 md:py-10">
@@ -20,12 +20,12 @@ export default function MatchPage() {
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="mb-2 text-xs font-black uppercase text-primary">Module 2 · Sportsbook</p>
-                  <h1 className="text-4xl font-black tracking-normal md:text-5xl">{footballMatch.title}</h1>
+                  <h1 className="text-4xl font-black tracking-normal md:text-5xl">{match.title}</h1>
                   <p className="mt-3 text-muted-foreground">
-                    {footballMatch.homeTeam} vs {footballMatch.awayTeam} · {footballMatch.startsAt}
+                    {match.homeTeam} vs {match.awayTeam} · {match.startsAt}
                   </p>
                 </div>
-                <StatusBadge status={footballMatch.status} />
+                <StatusBadge status={match.status} />
               </div>
             </div>
           </Card>
@@ -38,17 +38,14 @@ export default function MatchPage() {
               </p>
             </CardHeader>
             <CardContent className="grid gap-3 md:grid-cols-2">
-              {footballMatch.selections.map((selection) => {
-                const allowed = eligible.some((item) => item.id === selection.id)
-                return (
-                  <OddsButton
-                    key={selection.id}
-                    label={allowed ? selection.label : `${selection.label} · geblokkeerd`}
-                    odds={selection.finalOdds}
-                    disabled={!allowed}
-                  />
-                )
-              })}
+              {match.selections.map((selection) => (
+                <OddsButton
+                  key={selection.id}
+                  label={selection.disabled ? `${selection.label} · geblokkeerd` : selection.label}
+                  odds={selection.finalOdds}
+                  disabled={selection.disabled}
+                />
+              ))}
             </CardContent>
           </Card>
         </div>
@@ -57,29 +54,82 @@ export default function MatchPage() {
           <Card>
             <CardHeader>
               <CardTitle>Betbuilder</CardTitle>
-              <p className="text-sm text-muted-foreground">Voorbeeldselecties met correctiefactor 0,90.</p>
+              <p className="text-sm text-muted-foreground">Kies minstens twee selecties. De inzet wordt meteen van Miels saldo gehaald.</p>
             </CardHeader>
-            <CardContent className="grid gap-3">
-              {selected.map((selection) => (
-                <div key={selection.id} className="flex items-center justify-between rounded-md bg-secondary p-3">
-                  <span className="text-sm font-black">{selection.label}</span>
-                  <span className="font-black text-primary">{formatOdd(selection.finalOdds)}</span>
-                </div>
-              ))}
-              <div className="rounded-md border p-3 text-sm">
-                <div className="flex justify-between"><span>Ruwe odd</span><strong>{formatOdd(footballMatch.betBuilder.rawCombinedOdds)}</strong></div>
-                <div className="mt-1 flex justify-between"><span>Correctiefactor</span><strong>{footballMatch.betBuilder.correctionFactor}</strong></div>
-                <div className="mt-2 flex justify-between text-lg"><span>Finale odd</span><strong className="text-primary">{formatOdd(footballMatch.betBuilder.finalOdds)}</strong></div>
-              </div>
-              <Input type="number" min={10} max={250} defaultValue={50} />
-              <div className="rounded-md bg-primary p-3 font-black text-primary-foreground">
-                Mogelijke uitbetaling: {formatCredits(footballMatch.betBuilder.potentialPayout)}
-              </div>
-              <Button>Plaats betbuilder</Button>
+            <CardContent>
+              <BetBuilder matchId={match.dbBacked ? match.id : undefined} selections={match.selections} />
             </CardContent>
           </Card>
         </aside>
       </section>
     </div>
   )
+}
+
+async function getMatchData() {
+  try {
+    const match = await prisma.footballMatch.findFirst({
+      where: { status: { in: ['OPEN', 'LIVE', 'LOCKED'] } },
+      include: {
+        markets: {
+          where: { status: { in: ['OPEN', 'LOCKED'] } },
+          include: { selections: true },
+          orderBy: { sortOrder: 'asc' },
+        },
+      },
+      orderBy: { startsAt: 'asc' },
+    })
+    if (match) {
+      const selections = match.markets.flatMap((market) => market.selections)
+      const eligible = getEligibleFootballSelectionsForMiel(
+        selections.map((selection) => ({
+          id: selection.id,
+          label: selection.label,
+          finalOdds: Number(selection.finalOdds),
+          eligibilityType: selection.eligibilityType,
+          isManipulable: selection.isManipulable,
+        })),
+        true,
+      )
+      const eligibleIds = new Set(eligible.map((selection) => selection.id))
+
+      return {
+        id: match.id,
+        dbBacked: true,
+        title: match.title,
+        homeTeam: match.homeTeam,
+        awayTeam: match.awayTeam,
+        status: match.status,
+        startsAt: match.startsAt.toLocaleString('nl-BE'),
+        selections: selections.map((selection) => ({
+          id: selection.id,
+          label: selection.line ? `${selection.label} ${selection.line}` : selection.label,
+          finalOdds: Number(selection.finalOdds),
+          disabled: !eligibleIds.has(selection.id) || match.status !== 'OPEN',
+        })),
+      }
+    }
+  } catch (error) {
+    if (process.env.NODE_ENV === 'production') {
+      throw error
+    }
+  }
+
+  const eligible = getEligibleFootballSelectionsForMiel(footballMatch.selections, true)
+  const eligibleIds = new Set(eligible.map((selection) => selection.id))
+  return {
+    id: 'demo-match',
+    dbBacked: false,
+    title: footballMatch.title,
+    homeTeam: footballMatch.homeTeam,
+    awayTeam: footballMatch.awayTeam,
+    status: footballMatch.status,
+    startsAt: footballMatch.startsAt,
+    selections: footballMatch.selections.map((selection) => ({
+      id: selection.id,
+      label: selection.label,
+      finalOdds: selection.finalOdds,
+      disabled: !eligibleIds.has(selection.id),
+    })),
+  }
 }

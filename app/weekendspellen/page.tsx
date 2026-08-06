@@ -2,9 +2,14 @@ import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { StatusBadge } from '@/components/StatusBadge'
 import { weekendEvents } from '@/lib/demo-data'
+import { prisma } from '@/lib/prisma'
 import { formatOdd } from '@/lib/utils'
 
-export default function WeekendGamesPage() {
+export const dynamic = 'force-dynamic'
+
+export default async function WeekendGamesPage() {
+  const events = await getWeekendEvents()
+
   return (
     <div className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 md:py-10">
       <div>
@@ -17,7 +22,7 @@ export default function WeekendGamesPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        {weekendEvents.map((event) => (
+        {events.map((event) => (
           <Link key={event.id} href={`/weekendspellen/${event.id}`}>
             <Card className="h-full transition hover:border-primary">
               <CardHeader>
@@ -49,4 +54,35 @@ export default function WeekendGamesPage() {
       </div>
     </div>
   )
+}
+
+async function getWeekendEvents() {
+  try {
+    const events = await prisma.event.findMany({
+      include: { teams: true },
+      orderBy: [{ startsAt: 'asc' }, { createdAt: 'desc' }],
+      take: 12,
+    })
+    if (!events.length) return weekendEvents
+
+    return events.map((event) => ({
+      id: event.id,
+      title: event.title,
+      status: event.status,
+      startsAt: event.startsAt?.toLocaleString('nl-BE') ?? 'Nog te bepalen',
+      odds: event.teams
+        .filter((team) => team.finalOdds)
+        .map((team) => ({
+          teamId: team.id,
+          name: team.name,
+          finalOdds: Number(team.finalOdds),
+        })),
+    }))
+  } catch (error) {
+    if (process.env.NODE_ENV === 'production') {
+      throw error
+    }
+
+    return weekendEvents
+  }
 }

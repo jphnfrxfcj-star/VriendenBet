@@ -1,7 +1,8 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useTransition } from 'react'
 import { Minus, Plus, RotateCcw, TicketCheck } from 'lucide-react'
+import { placeWeekendBetAction } from '@/app/actions/bets'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -25,6 +26,7 @@ type TeamBuilderProps = {
   role?: Role
   mielParticipantId: string
   exactTeamSize: number
+  eventId?: string
 }
 
 export function TeamBuilder({
@@ -36,13 +38,16 @@ export function TeamBuilder({
   role,
   mielParticipantId,
   exactTeamSize,
+  eventId,
 }: TeamBuilderProps) {
   const [teams, setTeams] = useState<TeamInput[]>(initialTeams)
   const [stake, setStake] = useState(50)
   const [selectedTeamId, setSelectedTeamId] = useState(initialTeams[0]?.id ?? '')
   const [ticket, setTicket] = useState<{ teamName: string; stake: number; odds: number; payout: number } | null>(null)
+  const [message, setMessage] = useState('')
+  const [isPending, startTransition] = useTransition()
 
-  const editable = role === 'MIEL' && !ticket && ['OPEN_FOR_SELECTION', 'ODDS_READY'].includes(status)
+  const editable = role === 'MIEL' && !eventId && !ticket && ['OPEN_FOR_SELECTION', 'ODDS_READY'].includes(status)
   const selectedParticipantIds = useMemo(
     () => new Set(teams.flatMap((team) => team.memberParticipantIds)),
     [teams],
@@ -115,6 +120,27 @@ export function TeamBuilder({
 
   function placeBet() {
     if (!canPlaceBet || !selectedOdds) {
+      return
+    }
+
+    if (eventId) {
+      setMessage('')
+      startTransition(async () => {
+        const formData = new FormData()
+        formData.set('eventId', eventId)
+        formData.set('selectedTeamId', selectedTeamId)
+        formData.set('stake', String(stake))
+        const result = await placeWeekendBetAction(formData)
+        setMessage(result.message)
+        if (result.ok) {
+          setTicket({
+            teamName: selectedOdds.name,
+            stake,
+            odds: selectedOdds.finalOdds,
+            payout: stake * selectedOdds.finalOdds,
+          })
+        }
+      })
       return
     }
 
@@ -207,6 +233,10 @@ export function TeamBuilder({
               <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
                 Alleen Miel kan teams aanpassen. Viewers zien deze indeling read-only.
               </p>
+            ) : eventId ? (
+              <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+                Teams worden beheerd door admins. Miel kan hier alleen inzetten op zijn toegestane team.
+              </p>
             ) : null}
             {validationError ? (
               <p className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm font-bold text-destructive">
@@ -280,10 +310,13 @@ export function TeamBuilder({
               Mogelijke uitbetaling:
               <strong className="ml-2 text-primary">{formatCredits((selectedOdds?.finalOdds ?? 0) * stake)}</strong>
             </div>
-            <Button type="button" disabled={!canPlaceBet} onClick={placeBet}>
+            <Button type="button" disabled={!canPlaceBet || isPending} onClick={placeBet}>
               <TicketCheck className="size-4" />
-              Plaats virtuele bet
+              {isPending ? 'Bet plaatsen...' : 'Plaats virtuele bet'}
             </Button>
+            {message ? (
+              <p className="rounded-md border bg-secondary p-3 text-sm font-bold">{message}</p>
+            ) : null}
             {ticket ? (
               <div className="rounded-md border border-primary/50 bg-primary/10 p-3 text-sm">
                 <strong>Ticket geplaatst:</strong> {ticket.teamName} · {formatCredits(ticket.stake)} @{' '}

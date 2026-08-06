@@ -3,6 +3,7 @@ import {
   createFootballMatchAction,
   createFootballSelectionAction,
   overrideFootballSelectionOddsAction,
+  settleFootballBetBuildersAction,
   updateFootballMatchStatusAction,
   updateFootballSelectionAction,
 } from '../actions'
@@ -184,7 +185,18 @@ export default async function AdminFootballPage() {
 
                 {match.betBuilders.length ? (
                   <div className="rounded-md border bg-background p-3">
-                    <h3 className="font-black">Betbuilders</h3>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <h3 className="font-black">Betbuilders</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Vul eerst selectie-resultaten in. Daarna worden open betbuilders afgerekend.
+                        </p>
+                      </div>
+                      <form action={settleFootballBetBuildersAction}>
+                        <input type="hidden" name="footballMatchId" value={match.id} />
+                        <SubmitButton>Betbuilders uitbetalen</SubmitButton>
+                      </form>
+                    </div>
                     <div className="mt-2 grid gap-2">
                       {match.betBuilders.map((builder) => (
                         <p key={builder.id} className="text-sm text-muted-foreground">
