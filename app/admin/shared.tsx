@@ -113,16 +113,26 @@ export function TextField({
   name,
   defaultValue,
   placeholder,
+  rows,
+  textareaClassName,
 }: {
   label: string
   name: string
   defaultValue?: string | null
   placeholder?: string
+  rows?: number
+  textareaClassName?: string
 }) {
   return (
     <label className="grid gap-2 text-sm font-black">
       {label}
-      <Textarea name={name} defaultValue={defaultValue ?? undefined} placeholder={placeholder} />
+      <Textarea
+        name={name}
+        defaultValue={defaultValue ?? undefined}
+        placeholder={placeholder}
+        rows={rows}
+        className={textareaClassName}
+      />
     </label>
   )
 }
@@ -169,8 +179,18 @@ export function CheckField({
   )
 }
 
-export function SubmitButton({ children = 'Opslaan' }: { children?: ReactNode }) {
-  return <Button type="submit">{children}</Button>
+export function SubmitButton({
+  children = 'Opslaan',
+  disabled,
+}: {
+  children?: ReactNode
+  disabled?: boolean
+}) {
+  return (
+    <Button type="submit" disabled={disabled}>
+      {children}
+    </Button>
+  )
 }
 
 export function EmptyState({ children }: { children: ReactNode }) {

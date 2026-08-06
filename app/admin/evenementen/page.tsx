@@ -2,6 +2,7 @@ import {
   addEventTeamMemberAction,
   createEventAction,
   createEventTeamAction,
+  openEventForBettingAction,
   overrideEventTeamOddsAction,
   settleEventAction,
   setEventParticipantAction,
@@ -72,21 +73,38 @@ export default async function AdminEventsPage() {
       <AdminCard title="Evenementen beheren">
         <div className="grid gap-4">
           {events.length ? (
-            events.map((event) => (
-              <div key={event.id} className="grid gap-4 rounded-md border bg-secondary p-3">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <h2 className="text-xl font-black">{event.title}</h2>
-                    <p className="text-sm text-muted-foreground">
-                      {event.gameTemplate.name} · {event.status} · {event.startsAt?.toLocaleString('nl-BE') ?? 'geen startmoment'}
-                    </p>
+            events.map((event) => {
+              const teamsWithOdds = event.teams.filter((team) => team.finalOdds).length
+              const canOpenBets = teamsWithOdds >= 2 && !['ODDS_READY', 'BET_PLACED', 'IN_PROGRESS', 'SETTLED', 'CANCELLED'].includes(event.status)
+              return (
+                <div key={event.id} className="grid gap-4 rounded-md border bg-secondary p-3">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h2 className="text-xl font-black">{event.title}</h2>
+                      <p className="text-sm text-muted-foreground">
+                        {event.gameTemplate.name} · {event.status} · {event.startsAt?.toLocaleString('nl-BE') ?? 'geen startmoment'}
+                      </p>
+                      <p className="mt-1 text-xs font-bold text-muted-foreground">
+                        {teamsWithOdds} teams met odds · {event.bets.length} weddenschappen
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-end gap-2">
+                      <form action={openEventForBettingAction} className="grid gap-2">
+                        <input type="hidden" name="id" value={event.id} />
+                        <SubmitButton disabled={!canOpenBets}>
+                          {event.status === 'ODDS_READY' ? 'Staat open' : 'Open voor inzetten'}
+                        </SubmitButton>
+                        {!canOpenBets && event.status !== 'ODDS_READY' ? (
+                          <p className="max-w-52 text-xs font-bold text-muted-foreground">Minstens 2 teams met final odds nodig.</p>
+                        ) : null}
+                      </form>
+                      <form action={updateEventStatusAction} className="flex items-end gap-2">
+                        <input type="hidden" name="id" value={event.id} />
+                        <SelectField name="status" label="Status" defaultValue={event.status} options={eventStatuses} />
+                        <SubmitButton>Status</SubmitButton>
+                      </form>
+                    </div>
                   </div>
-                  <form action={updateEventStatusAction} className="flex items-end gap-2">
-                    <input type="hidden" name="id" value={event.id} />
-                    <SelectField name="status" label="Status" defaultValue={event.status} options={eventStatuses} />
-                    <SubmitButton>Status</SubmitButton>
-                  </form>
-                </div>
 
                 <div className="grid gap-3 lg:grid-cols-2">
                   <div className="rounded-md border bg-background p-3">
@@ -192,8 +210,9 @@ export default async function AdminEventsPage() {
                     </form>
                   </div>
                 </div>
-              </div>
-            ))
+                </div>
+              )
+            })
           ) : (
             <EmptyState>Nog geen evenementen.</EmptyState>
           )}

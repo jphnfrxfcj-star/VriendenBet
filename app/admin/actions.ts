@@ -307,6 +307,46 @@ export async function updateEventStatusAction(formData: FormData) {
   return
 }
 
+export async function openEventForBettingAction(formData: FormData) {
+  const session = await adminUser()
+  const id = value(formData, 'id')
+  const event = await prisma.event.findUniqueOrThrow({
+    where: { id },
+    include: { teams: true },
+  })
+  if (['BET_PLACED', 'IN_PROGRESS', 'SETTLED', 'CANCELLED'].includes(event.status)) {
+    throw new Error('Dit event kan niet meer opengezet worden')
+  }
+  const readyTeams = event.teams.filter((team) => team.finalOdds)
+  if (readyTeams.length < 2) {
+    throw new Error('Minstens twee teams met final odds zijn nodig om weddenschappen te openen')
+  }
+
+  await prisma.$transaction([
+    prisma.event.update({
+      where: { id },
+      data: {
+        status: 'ODDS_READY',
+        opensAt: event.opensAt ?? new Date(),
+      },
+    }),
+    prisma.auditLog.create({
+      data: {
+        userId: session.userId,
+        action: 'EVENT_OPENED_FOR_BETS',
+        entityType: 'Event',
+        entityId: id,
+        metadataJson: { readyTeams: readyTeams.length },
+      },
+    }),
+  ])
+  revalidatePath('/admin/evenementen')
+  revalidatePath('/admin/weddenschappen')
+  revalidatePath('/weekendspellen')
+  revalidatePath(`/weekendspellen/${id}`)
+  return
+}
+
 export async function createEventTeamAction(formData: FormData) {
   const session = await adminUser()
   const team = await prisma.eventTeam.create({
@@ -503,6 +543,47 @@ export async function updateFootballMatchStatusAction(formData: FormData) {
   await prisma.footballMatch.update({ where: { id }, data: { status } })
   await audit(session.userId, 'FOOTBALL_MATCH_STATUS_UPDATED', 'FootballMatch', id, { status })
   revalidatePath('/admin/voetbal')
+  return
+}
+
+export async function openFootballMatchForBettingAction(formData: FormData) {
+  const session = await adminUser()
+  const id = value(formData, 'id')
+  const match = await prisma.footballMatch.findUniqueOrThrow({
+    where: { id },
+    include: { markets: { include: { selections: true } } },
+  })
+  if (['LOCKED', 'LIVE', 'FINISHED', 'SETTLED', 'CANCELLED'].includes(match.status)) {
+    throw new Error('Deze match kan niet meer opengezet worden')
+  }
+  const openableMarkets = match.markets.filter((market) => !['SETTLED', 'CANCELLED'].includes(market.status))
+  const selectionCount = openableMarkets.reduce((sum, market) => sum + market.selections.length, 0)
+  if (!openableMarkets.length || !selectionCount) {
+    throw new Error('Minstens een markt met selecties is nodig om weddenschappen te openen')
+  }
+
+  await prisma.$transaction([
+    prisma.footballMatch.update({ where: { id }, data: { status: 'OPEN' } }),
+    prisma.footballMarket.updateMany({
+      where: {
+        footballMatchId: id,
+        status: { in: ['DRAFT', 'LOCKED'] },
+      },
+      data: { status: 'OPEN' },
+    }),
+    prisma.auditLog.create({
+      data: {
+        userId: session.userId,
+        action: 'FOOTBALL_MATCH_OPENED_FOR_BETS',
+        entityType: 'FootballMatch',
+        entityId: id,
+        metadataJson: { openableMarkets: openableMarkets.length, selections: selectionCount },
+      },
+    }),
+  ])
+  revalidatePath('/admin/voetbal')
+  revalidatePath('/admin/weddenschappen')
+  revalidatePath('/match')
   return
 }
 

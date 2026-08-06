@@ -2,6 +2,7 @@ import {
   createFootballMarketAction,
   createFootballMatchAction,
   createFootballSelectionAction,
+  openFootballMatchForBettingAction,
   overrideFootballSelectionOddsAction,
   settleFootballBetBuildersAction,
   updateFootballMatchStatusAction,
@@ -121,21 +122,42 @@ export default async function AdminFootballPage() {
       <AdminCard title="Wedstrijden beheren">
         <div className="grid gap-4">
           {matches.length ? (
-            matches.map((match) => (
-              <div key={match.id} className="grid gap-4 rounded-md border bg-secondary p-3">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <h2 className="text-xl font-black">{match.title}</h2>
-                    <p className="text-sm text-muted-foreground">
-                      {match.homeTeam} vs {match.awayTeam} · {match.startsAt.toLocaleString('nl-BE')} · {match.status}
-                    </p>
+            matches.map((match) => {
+              const openableMarkets = match.markets.filter((market) => !['SETTLED', 'CANCELLED'].includes(market.status))
+              const selectionCount = openableMarkets.reduce((sum, market) => sum + market.selections.length, 0)
+              const canOpenBets =
+                !['OPEN', 'LOCKED', 'LIVE', 'FINISHED', 'SETTLED', 'CANCELLED'].includes(match.status) &&
+                openableMarkets.length > 0 &&
+                selectionCount > 0
+              return (
+                <div key={match.id} className="grid gap-4 rounded-md border bg-secondary p-3">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h2 className="text-xl font-black">{match.title}</h2>
+                      <p className="text-sm text-muted-foreground">
+                        {match.homeTeam} vs {match.awayTeam} · {match.startsAt.toLocaleString('nl-BE')} · {match.status}
+                      </p>
+                      <p className="mt-1 text-xs font-bold text-muted-foreground">
+                        {openableMarkets.length} markten · {selectionCount} selecties
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-end gap-2">
+                      <form action={openFootballMatchForBettingAction} className="grid gap-2">
+                        <input type="hidden" name="id" value={match.id} />
+                        <SubmitButton disabled={!canOpenBets}>
+                          {match.status === 'OPEN' ? 'Staat open' : 'Open voor inzetten'}
+                        </SubmitButton>
+                        {!canOpenBets && match.status !== 'OPEN' ? (
+                          <p className="max-w-52 text-xs font-bold text-muted-foreground">Minstens 1 markt met selectie nodig.</p>
+                        ) : null}
+                      </form>
+                      <form action={updateFootballMatchStatusAction} className="flex items-end gap-2">
+                        <input type="hidden" name="id" value={match.id} />
+                        <SelectField name="status" label="Status" defaultValue={match.status} options={matchStatuses} />
+                        <SubmitButton>Status</SubmitButton>
+                      </form>
+                    </div>
                   </div>
-                  <form action={updateFootballMatchStatusAction} className="flex items-end gap-2">
-                    <input type="hidden" name="id" value={match.id} />
-                    <SelectField name="status" label="Status" defaultValue={match.status} options={matchStatuses} />
-                    <SubmitButton>Status</SubmitButton>
-                  </form>
-                </div>
 
                 {match.markets.map((market) => (
                   <div key={market.id} className="rounded-md border bg-background p-3">
@@ -208,8 +230,9 @@ export default async function AdminFootballPage() {
                     </div>
                   </div>
                 ) : null}
-              </div>
-            ))
+                </div>
+              )
+            })
           ) : (
             <EmptyState>Nog geen voetbalwedstrijden.</EmptyState>
           )}
