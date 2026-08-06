@@ -76,30 +76,33 @@ export function SuggestionForm({ attributeOptions }: { attributeOptions: string[
         Regels
         <Textarea {...register('proposedRules')} placeholder="Korte spelregels" />
       </label>
-      <div className="grid gap-4 sm:grid-cols-3">
-        <label className="grid gap-2 text-sm font-black">
-          Format
-          <Select {...register('proposedFormat')}>
-            <option value="TEAM">Teamspel</option>
-            <option value="INDIVIDUAL">Individueel</option>
-          </Select>
-        </label>
-        {isTeamGame ? (
-          <>
-            <label className="grid gap-2 text-sm font-black">
-              Teams
-              <Input type="number" min={2} max={8} {...register('proposedTeamCount')} />
-            </label>
-            <label className="grid gap-2 text-sm font-black">
-              Spelers/team
-              <Input type="number" min={1} max={12} {...register('proposedPlayersPerTeam')} />
-            </label>
-          </>
-        ) : (
-          <div className="grid content-end rounded-md border bg-secondary p-3 text-sm font-bold text-muted-foreground sm:col-span-2">
+      <div className="grid gap-3">
+        <div className={`grid gap-4 ${isTeamGame ? 'sm:grid-cols-3' : 'sm:grid-cols-[minmax(0,1fr)_2fr]'}`}>
+          <label className="grid gap-2 text-sm font-black">
+            Format
+            <Select {...register('proposedFormat')}>
+              <option value="TEAM">Teamspel</option>
+              <option value="INDIVIDUAL">Individueel</option>
+            </Select>
+          </label>
+          {isTeamGame ? (
+            <>
+              <label className="grid gap-2 text-sm font-black">
+                Teams
+                <Input type="number" min={2} max={8} {...register('proposedTeamCount')} />
+              </label>
+              <label className="grid gap-2 text-sm font-black">
+                Spelers/team
+                <Input type="number" min={1} max={12} {...register('proposedPlayersPerTeam')} />
+              </label>
+            </>
+          ) : null}
+        </div>
+        {!isTeamGame ? (
+          <p className="rounded-md border border-dashed p-3 text-sm font-bold text-muted-foreground">
             Individueel spel: geen teaminfo nodig.
-          </div>
-        )}
+          </p>
+        ) : null}
       </div>
       <div className="grid gap-2 text-sm font-black">
         Relevante eigenschappen
