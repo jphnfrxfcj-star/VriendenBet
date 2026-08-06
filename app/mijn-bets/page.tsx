@@ -56,7 +56,7 @@ export default async function MyBetsPage() {
       <section className="grid gap-3 sm:grid-cols-3">
         <Metric label="Open inzet" value={formatCredits(data.openStake)} />
         <Metric label="Mogelijke return" value={formatCredits(data.possibleReturn)} />
-        <Metric label="Open tickets" value={String(pendingBets.length)} />
+        <Metric label="Openstaande weddenschappen" value={String(pendingBets.length)} />
       </section>
 
       <div className="grid grid-cols-4 overflow-hidden rounded-md border text-center text-xs font-black sm:text-sm">
@@ -75,14 +75,14 @@ export default async function MyBetsPage() {
       <section className="grid gap-5 lg:grid-cols-[1fr_360px]">
         <Card>
           <CardHeader>
-            <CardTitle>Open tickets</CardTitle>
+            <CardTitle>Openstaande weddenschappen</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-3">
             {pendingBets.length ? (
               pendingBets.map((bet) => <BetCard key={bet.id} bet={bet} />)
             ) : (
               <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-                Geen open tickets.
+                Geen openstaande weddenschappen.
               </p>
             )}
           </CardContent>

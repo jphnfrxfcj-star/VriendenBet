@@ -62,7 +62,7 @@ export default async function LivePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Open tickets</CardTitle>
+          <CardTitle>Openstaande weddenschappen</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-2">
           {openTickets.length ? (
@@ -94,7 +94,7 @@ export default async function LivePage() {
             ))
           ) : (
             <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground md:col-span-2">
-              Geen open tickets.
+              Geen openstaande weddenschappen.
             </p>
           )}
         </CardContent>

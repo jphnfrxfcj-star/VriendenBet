@@ -10,6 +10,7 @@ const items = [
   ['Templates', '/admin/templates'],
   ['Evenementen', '/admin/evenementen'],
   ['Voetbal', '/admin/voetbal'],
+  ['Weddenschappen', '/admin/weddenschappen'],
   ['Wallet', '/admin/wallet'],
   ['Voorstellen', '/admin/voorstellen'],
   ['Auditlog', '/admin/auditlog'],

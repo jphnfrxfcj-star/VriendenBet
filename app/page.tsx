@@ -51,6 +51,12 @@ export default async function HomePage() {
             </div>
             <Metric icon={Banknote} label="Openstaande inzet" value={formatCredits(dashboard.openStake)} />
             <Metric icon={Trophy} label="Mogelijke return" value={formatCredits(dashboard.possibleReturn)} />
+            <Link
+              href="/mijn-bets"
+              className="inline-flex min-h-11 items-center justify-center rounded-md bg-secondary px-4 py-2 text-sm font-black transition hover:border-primary"
+            >
+              Openstaande weddenschappen
+            </Link>
           </CardContent>
         </Card>
       </section>

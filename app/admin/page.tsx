@@ -13,12 +13,15 @@ export default async function AdminDashboardPage() {
     recentTransactions,
     recentAudit,
     mielWallet,
+    openEventBets,
+    openBetBuilders,
   ] = await getDashboardData()
 
   const metrics = [
     ['Actieve evenementen', String(activeEvents), '/admin/evenementen'],
     ['Af te handelen', String(pendingEvents), '/admin/evenementen'],
     ['Miels saldo', mielWallet ? formatCredits(Number(mielWallet.balance)) : 'Geen wallet', '/admin/wallet'],
+    ['Open weddenschappen', String(openEventBets + openBetBuilders), '/admin/weddenschappen'],
     ['Open voetbalmarkten', String(openFootballMarkets), '/admin/voetbal'],
     ['Open voorstellen', String(openSuggestions), '/admin/voorstellen'],
   ]
@@ -32,7 +35,7 @@ export default async function AdminDashboardPage() {
           Centrale cockpit voor deelnemers, scores, games, odds, wallet, voorstellen en auditlogs.
         </p>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
         {metrics.map(([label, value, href]) => (
           <Link key={label} href={href}>
             <Card className="h-full transition hover:border-primary">
@@ -110,12 +113,14 @@ async function getDashboardData() {
       prisma.walletTransaction.findMany({ include: { wallet: { include: { user: true } } }, orderBy: { createdAt: 'desc' }, take: 5 }),
       prisma.auditLog.findMany({ include: { user: true }, orderBy: { createdAt: 'desc' }, take: 6 }),
       prisma.wallet.findFirst({ where: { user: { role: 'MIEL' } }, include: { user: true } }),
+      prisma.eventBet.count({ where: { status: 'PENDING' } }),
+      prisma.footballBetBuilder.count({ where: { status: { in: ['DRAFT', 'PLACED'] } } }),
     ])
   } catch (error) {
     if (process.env.NODE_ENV === 'production') {
       throw error
     }
 
-    return [0, 0, 0, 0, [], [], [], null] as const
+    return [0, 0, 0, 0, [], [], [], null, 0, 0] as const
   }
 }
