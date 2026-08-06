@@ -1,6 +1,9 @@
 .DS_Store
 .env*
 !.env.example
+netlify.env
+netlify.env.*
+!netlify.env.example
 node_modules/
 .next/
 dist/

@@ -151,6 +151,8 @@ Zet minstens `DATABASE_URL`, `SESSION_SECRET` en `SEED_PIN` in Netlify Environme
 
 Gebruik voor deze codebase een Postgres-database met een Prisma-compatibele `DATABASE_URL`. De kleinste ingreep is Netlify Database of een andere managed Postgres gebruiken en de connection string als `DATABASE_URL` zetten. Laat `ALLOW_DEMO_LOGIN` leeg of `false` in productie.
 
+Gebruik `netlify.env.example` als veilige template en `docs/netlify-env.md` als checklist voor scopes en contexts. Zet echte secrets via Netlify UI of CLI, niet in `netlify.toml`.
+
 Seeddata wordt bewust niet automatisch tijdens elke Netlify build gedraaid. Run na de eerste migratie eenmalig:
 
 ```bash
