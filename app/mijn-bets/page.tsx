@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { StatusBadge } from '@/components/StatusBadge'
 import { footballMatch, wallet as demoWallet, weekendEvents } from '@/lib/demo-data'
 import { getSessionUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -39,15 +40,15 @@ export default async function MyBetsPage() {
 
   return (
     <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-6 md:py-10">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
+      <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
+        <div className="min-w-0">
           <p className="mb-2 text-xs font-black uppercase text-primary">Miel only</p>
-          <h1 className="text-4xl font-black tracking-normal md:text-5xl">Mijn bets</h1>
+          <h1 className="text-4xl font-black tracking-normal md:text-5xl">Mijn weddenschappen</h1>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
             Overzicht van bankroll, open inzetten, mogelijke uitbetalingen en recente walletbewegingen.
           </p>
         </div>
-        <div className="rounded-md bg-primary px-4 py-3 text-primary-foreground">
+        <div className="w-full rounded-md bg-primary px-4 py-3 text-primary-foreground md:w-auto md:min-w-56">
           <p className="text-xs font-black uppercase">Beschikbaar saldo</p>
           <p className="text-3xl font-black">{formatCredits(data.balance)}</p>
         </div>
@@ -56,18 +57,21 @@ export default async function MyBetsPage() {
       <section className="grid gap-3 sm:grid-cols-3">
         <Metric label="Open inzet" value={formatCredits(data.openStake)} />
         <Metric label="Mogelijke return" value={formatCredits(data.possibleReturn)} />
-        <Metric label="Openstaande weddenschappen" value={String(pendingBets.length)} />
+        <Metric label="Openstaand" value={String(pendingBets.length)} />
       </section>
 
-      <div className="grid grid-cols-4 overflow-hidden rounded-md border text-center text-xs font-black sm:text-sm">
+      <div className="flex gap-2 overflow-x-auto rounded-md border bg-card p-1 text-center text-xs font-black sm:grid sm:grid-cols-4 sm:text-sm">
         {[
           ['Openstaand', pendingBets.length],
           ['Gewonnen', data.bets.filter((bet) => bet.status === 'WON').length],
           ['Verloren', data.bets.filter((bet) => bet.status === 'LOST').length],
           ['Terugbetaald', data.bets.filter((bet) => ['REFUNDED', 'PARTIALLY_VOID'].includes(bet.status)).length],
         ].map(([tab, count], index) => (
-          <div key={tab} className={index === 0 ? 'bg-primary p-3 text-primary-foreground' : 'bg-card p-3 text-muted-foreground'}>
-            {tab} <span className="hidden sm:inline">({count})</span>
+          <div
+            key={tab}
+            className={`shrink-0 rounded px-3 py-2 ${index === 0 ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
+          >
+            {tab} <span>({count})</span>
           </div>
         ))}
       </div>
@@ -144,8 +148,8 @@ export default async function MyBetsPage() {
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <Card>
-      <CardContent className="p-4">
-        <p className="text-xs font-black uppercase text-muted-foreground">{label}</p>
+      <CardContent className="grid min-h-28 content-between p-4">
+        <p className="text-xs font-black uppercase leading-tight text-muted-foreground">{label}</p>
         <p className="mt-2 text-3xl font-black text-primary">{value}</p>
       </CardContent>
     </Card>
@@ -155,13 +159,16 @@ function Metric({ label, value }: { label: string; value: string }) {
 function BetCard({ bet, compact }: { bet: BetRow; compact?: boolean }) {
   return (
     <article className="grid gap-3 rounded-md border bg-secondary p-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+      <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-start">
+        <div className="min-w-0">
           <p className="text-xs font-black uppercase text-primary">{bet.type}</p>
-          <h2 className="text-xl font-black">{bet.title}</h2>
+          <h2 className="break-words text-xl font-black leading-tight">{bet.title}</h2>
           <p className="text-sm text-muted-foreground">{bet.subtitle}</p>
         </div>
-        <span className="rounded-md bg-card px-3 py-2 text-sm font-black text-primary">@ {formatOdd(bet.odds)}</span>
+        <div className="flex items-center justify-between gap-2 sm:grid sm:justify-items-end">
+          <StatusBadge status={bet.status} />
+          <span className="rounded-md bg-card px-3 py-2 text-sm font-black text-primary">@ {formatOdd(bet.odds)}</span>
+        </div>
       </div>
       {!compact && bet.selections.length ? (
         <div className="grid gap-2">
@@ -172,7 +179,7 @@ function BetCard({ bet, compact }: { bet: BetRow; compact?: boolean }) {
           ))}
         </div>
       ) : null}
-      <div className="grid gap-2 text-sm sm:grid-cols-3">
+      <div className="grid gap-2 text-sm md:grid-cols-3">
         <WalletLine label="Inzet" value={formatCredits(bet.stake)} />
         <WalletLine label="Mogelijk" value={formatCredits(bet.potentialPayout)} highlight />
         <WalletLine label="Status" value={bet.status} />
