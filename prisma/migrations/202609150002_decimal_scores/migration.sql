@@ -1,0 +1,1 @@
+ALTER TABLE "ParticipantAttribute" ALTER COLUMN "score" TYPE DOUBLE PRECISION;

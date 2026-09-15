@@ -1,3 +1,4 @@
+import { AdminForm } from '../AdminForm'
 import {
   createFootballMarketAction,
   createFootballMatchAction,
@@ -63,8 +64,8 @@ export default async function AdminFootballPage() {
       title="Voetbalwedstrijd en sportsbook"
       subtitle="Beheer wedstrijden, marketgroepen, selecties, eligibility, odds, resultaten en betbuilders."
     >
-      <AdminCard title="Nieuwe voetbalwedstrijd">
-        <form action={createFootballMatchAction} className="grid gap-4 md:grid-cols-2">
+      <AdminCard title="Nieuwe voetbalwedstrijd" collapsed>
+        <AdminForm action={createFootballMatchAction} className="grid gap-4 md:grid-cols-2">
           <Field name="title" label="Titel" required />
           <SelectField name="status" label="Status" defaultValue="DRAFT" options={matchStatuses} />
           <Field name="homeTeam" label="Thuisploeg" required />
@@ -77,12 +78,12 @@ export default async function AdminFootballPage() {
           <div className="md:col-span-2">
             <SubmitButton>Wedstrijd toevoegen</SubmitButton>
           </div>
-        </form>
+        </AdminForm>
       </AdminCard>
 
       {matches.length ? (
-        <AdminCard title="Nieuwe markt">
-          <form action={createFootballMarketAction} className="grid gap-4 md:grid-cols-2">
+        <AdminCard title="Nieuwe markt" collapsed>
+          <AdminForm action={createFootballMarketAction} className="grid gap-4 md:grid-cols-2">
             <SelectField
               name="footballMatchId"
               label="Wedstrijd"
@@ -99,13 +100,13 @@ export default async function AdminFootballPage() {
             <div className="md:col-span-2">
               <SubmitButton>Markt toevoegen</SubmitButton>
             </div>
-          </form>
+          </AdminForm>
         </AdminCard>
       ) : null}
 
       {marketOptions.length ? (
-        <AdminCard title="Nieuwe selectie">
-          <form action={createFootballSelectionAction} className="grid gap-4 md:grid-cols-2">
+        <AdminCard title="Nieuwe selectie" collapsed>
+          <AdminForm action={createFootballSelectionAction} className="grid gap-4 md:grid-cols-2">
             <SelectField name="footballMarketId" label="Markt" options={marketOptions} />
             <Field name="label" label="Label" required />
             <Field name="line" label="Lijn" placeholder="Bijv. meer dan 2,5" />
@@ -115,7 +116,7 @@ export default async function AdminFootballPage() {
             <div className="md:col-span-2">
               <SubmitButton>Selectie toevoegen</SubmitButton>
             </div>
-          </form>
+          </AdminForm>
         </AdminCard>
       ) : null}
 
@@ -142,7 +143,7 @@ export default async function AdminFootballPage() {
                       </p>
                     </div>
                     <div className="flex flex-wrap items-end gap-2">
-                      <form action={openFootballMatchForBettingAction} className="grid gap-2">
+                      <AdminForm action={openFootballMatchForBettingAction} className="grid gap-2">
                         <input type="hidden" name="id" value={match.id} />
                         <SubmitButton disabled={!canOpenBets}>
                           {match.status === 'OPEN' ? 'Staat open' : 'Open voor inzetten'}
@@ -150,12 +151,12 @@ export default async function AdminFootballPage() {
                         {!canOpenBets && match.status !== 'OPEN' ? (
                           <p className="max-w-52 text-xs font-bold text-muted-foreground">Minstens 1 markt met selectie nodig.</p>
                         ) : null}
-                      </form>
-                      <form action={updateFootballMatchStatusAction} className="flex items-end gap-2">
+                      </AdminForm>
+                      <AdminForm action={updateFootballMatchStatusAction} className="flex items-end gap-2">
                         <input type="hidden" name="id" value={match.id} />
                         <SelectField name="status" label="Status" defaultValue={match.status} options={matchStatuses} />
                         <SubmitButton>Status</SubmitButton>
-                      </form>
+                      </AdminForm>
                     </div>
                   </div>
 
@@ -167,7 +168,7 @@ export default async function AdminFootballPage() {
                     <div className="mt-3 grid gap-3">
                       {market.selections.map((selection) => (
                         <div key={selection.id} className="grid gap-2 rounded-md bg-secondary p-3">
-                          <form action={updateFootballSelectionAction} className="grid gap-3 lg:grid-cols-[1fr_120px_160px_140px_auto]">
+                          <AdminForm action={updateFootballSelectionAction} className="grid gap-3 lg:grid-cols-[1fr_120px_160px_140px_auto]">
                             <input type="hidden" name="id" value={selection.id} />
                             <Field name="label" label="Label" defaultValue={selection.label} required />
                             <Field name="line" label="Lijn" defaultValue={selection.line} />
@@ -184,8 +185,8 @@ export default async function AdminFootballPage() {
                               <CheckField name="isWinningSelection" label="Winnaar" defaultChecked={selection.isWinningSelection} />
                               <SubmitButton>Opslaan</SubmitButton>
                             </div>
-                          </form>
-                          <form action={overrideFootballSelectionOddsAction} className="grid gap-2 md:grid-cols-[140px_1fr_auto]">
+                          </AdminForm>
+                          <AdminForm action={overrideFootballSelectionOddsAction} className="grid gap-2 md:grid-cols-[140px_1fr_auto]">
                             <input type="hidden" name="id" value={selection.id} />
                             <Field
                               name="overriddenOdds"
@@ -198,7 +199,7 @@ export default async function AdminFootballPage() {
                             <div className="grid content-end">
                               <SubmitButton>Override</SubmitButton>
                             </div>
-                          </form>
+                          </AdminForm>
                         </div>
                       ))}
                     </div>
@@ -214,10 +215,10 @@ export default async function AdminFootballPage() {
                           Vul eerst selectie-resultaten in. Daarna worden open betbuilders afgerekend.
                         </p>
                       </div>
-                      <form action={settleFootballBetBuildersAction}>
+                      <AdminForm action={settleFootballBetBuildersAction}>
                         <input type="hidden" name="footballMatchId" value={match.id} />
                         <SubmitButton>Betbuilders uitbetalen</SubmitButton>
-                      </form>
+                      </AdminForm>
                     </div>
                     <div className="mt-2 grid gap-2">
                       {match.betBuilders.map((builder) => (

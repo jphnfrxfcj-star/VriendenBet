@@ -15,7 +15,7 @@ const proposedAttributesSchema = z
   .transform((value) => {
     if (!value) return []
     const attributes = Array.isArray(value) ? value : value.split(',')
-    return Array.from(new Set(attributes.map((attribute) => attribute.trim()).filter(Boolean))).slice(0, 12)
+    return Array.from(new Set(attributes.map((attribute) => attribute.trim()).filter(Boolean)))
   })
 
 export const suggestionSchema = z

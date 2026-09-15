@@ -1,3 +1,4 @@
+import { AdminForm } from '../AdminForm'
 import { adjustWalletAction } from '../actions'
 import { AdminCard, AdminPageShell, EmptyState, Field, SelectField, SubmitButton } from '../shared'
 import { prisma } from '@/lib/prisma'
@@ -16,7 +17,7 @@ export default async function AdminWalletPage() {
     <AdminPageShell title="Walletbeheer" subtitle="Beheer Miels saldo, bonussen, correcties en transactielog.">
       <AdminCard title="Saldo aanpassen">
         {wallets.length ? (
-          <form action={adjustWalletAction} className="grid gap-4 md:grid-cols-2">
+          <AdminForm action={adjustWalletAction} className="grid gap-4 md:grid-cols-2">
             <SelectField
               name="walletId"
               label="Wallet"
@@ -39,7 +40,7 @@ export default async function AdminWalletPage() {
             <div className="md:col-span-2">
               <SubmitButton>Saldo aanpassen</SubmitButton>
             </div>
-          </form>
+          </AdminForm>
         ) : (
           <EmptyState>Geen wallets gevonden. Alleen Miel hoort een wallet te hebben.</EmptyState>
         )}

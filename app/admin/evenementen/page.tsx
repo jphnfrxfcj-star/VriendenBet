@@ -1,3 +1,4 @@
+import { AdminForm } from '../AdminForm'
 import {
   createEventAction,
   createEventTeamAction,
@@ -56,7 +57,7 @@ export default async function AdminEventsPage() {
       subtitle="Snelle bediening voor weekendspellen: maken, teams zetten, odds invullen, openzetten en uitbetalen."
     >
       <AdminCard title="Snel nieuw event">
-        <form action={createEventAction} className="grid gap-3 md:grid-cols-[1fr_1fr_220px_auto] md:items-end">
+        <AdminForm action={createEventAction} className="grid gap-3 md:grid-cols-[1fr_1fr_220px_auto] md:items-end">
           <SelectField
             name="gameTemplateId"
             label="Template"
@@ -72,7 +73,7 @@ export default async function AdminEventsPage() {
               <TextField name="description" label="Omschrijving" rows={2} textareaClassName="min-h-20" />
             </div>
           </details>
-        </form>
+        </AdminForm>
       </AdminCard>
 
       <AdminCard title="Events beheren">
@@ -115,31 +116,31 @@ export default async function AdminEventsPage() {
                   </div>
 
                   <div className="flex flex-wrap gap-2 rounded-md bg-card p-3">
-                    <form action={createEventTeamsFromTemplateAction}>
+                    <AdminForm action={createEventTeamsFromTemplateAction}>
                       <input type="hidden" name="eventId" value={event.id} />
                       <SubmitButton disabled={missingTeams === 0}>
                         {missingTeams ? `Maak ${missingTeams} teams` : 'Teams klaar'}
                       </SubmitButton>
-                    </form>
-                    <form action={openEventForTeamSelectionAction}>
+                    </AdminForm>
+                    <AdminForm action={openEventForTeamSelectionAction}>
                       <input type="hidden" name="id" value={event.id} />
                       <SubmitButton disabled={!canLetMielChooseTeams}>
                         {event.status === 'OPEN_FOR_SELECTION' ? 'Miel kan kiezen' : 'Laat Miel teams kiezen'}
                       </SubmitButton>
-                    </form>
-                    <form action={openEventForBettingAction}>
+                    </AdminForm>
+                    <AdminForm action={openEventForBettingAction}>
                       <input type="hidden" name="id" value={event.id} />
                       <SubmitButton disabled={!canOpenBets}>
                         {isOpen ? 'Staat open' : 'Open voor inzetten'}
                       </SubmitButton>
-                    </form>
+                    </AdminForm>
                     <details className="min-w-56 rounded-md border bg-background p-3">
                       <summary className="cursor-pointer text-sm font-black">Status wijzigen</summary>
-                      <form action={updateEventStatusAction} className="mt-3 grid gap-2">
+                      <AdminForm action={updateEventStatusAction} className="mt-3 grid gap-2">
                         <input type="hidden" name="id" value={event.id} />
                         <SelectField name="status" label="Status" defaultValue={event.status} options={eventStatuses} />
                         <SubmitButton>Status opslaan</SubmitButton>
-                      </form>
+                      </AdminForm>
                     </details>
                   </div>
 
@@ -151,7 +152,7 @@ export default async function AdminEventsPage() {
 
                   <details className="rounded-md border bg-background p-3">
                     <summary className="cursor-pointer text-sm font-black">Aanwezigen</summary>
-                    <form action={setEventParticipantsAction} className="mt-3 grid gap-3">
+                    <AdminForm action={setEventParticipantsAction} className="mt-3 grid gap-3">
                       <input type="hidden" name="eventId" value={event.id} />
                       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                         {participants.map((participant) => {
@@ -172,18 +173,18 @@ export default async function AdminEventsPage() {
                         })}
                       </div>
                       <SubmitButton>Aanwezigen opslaan</SubmitButton>
-                    </form>
+                    </AdminForm>
                   </details>
 
                   <details className="rounded-md border bg-background p-3" open>
                     <summary className="cursor-pointer text-sm font-black">Teams en odds</summary>
                     <div className="mt-3 grid gap-3">
-                      <form action={createEventTeamAction} className="grid gap-3 rounded-md bg-secondary p-3 md:grid-cols-[1fr_140px_auto] md:items-end">
+                      <AdminForm action={createEventTeamAction} className="grid gap-3 rounded-md bg-secondary p-3 md:grid-cols-[1fr_140px_auto] md:items-end">
                         <input type="hidden" name="eventId" value={event.id} />
                         <Field name="name" label="Nieuw team" required placeholder="Teamnaam" />
                         <Field name="finalOdds" label="Odd" type="number" step="0.01" min={1.01} />
                         <SubmitButton>Team toevoegen</SubmitButton>
-                      </form>
+                      </AdminForm>
 
                       {event.teams.length ? (
                         <div className="grid gap-3 lg:grid-cols-2">
@@ -201,7 +202,7 @@ export default async function AdminEventsPage() {
                                 </span>
                               </div>
 
-                              <form action={setEventTeamOddsAction} className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
+                              <AdminForm action={setEventTeamOddsAction} className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
                                 <input type="hidden" name="id" value={team.id} />
                                 <Field
                                   name="finalOdds"
@@ -212,9 +213,9 @@ export default async function AdminEventsPage() {
                                   defaultValue={team.finalOdds ? String(team.finalOdds) : undefined}
                                 />
                                 <SubmitButton>Odd opslaan</SubmitButton>
-                              </form>
+                              </AdminForm>
 
-                              <form action={setEventTeamMembersAction} className="grid gap-3">
+                              <AdminForm action={setEventTeamMembersAction} className="grid gap-3">
                                 <input type="hidden" name="eventTeamId" value={team.id} />
                                 <div className="grid gap-2 sm:grid-cols-2">
                                   {availableParticipants.map((participant) => (
@@ -231,7 +232,7 @@ export default async function AdminEventsPage() {
                                   ))}
                                 </div>
                                 <SubmitButton>Leden opslaan</SubmitButton>
-                              </form>
+                              </AdminForm>
                             </div>
                           ))}
                         </div>
@@ -258,7 +259,7 @@ export default async function AdminEventsPage() {
                   <details className="rounded-md border bg-background p-3">
                     <summary className="cursor-pointer text-sm font-black">Resultaat en uitbetaling</summary>
                     <div className="mt-3 grid gap-3 md:grid-cols-2">
-                      <form action={settleEventAction} className="grid gap-3 rounded-md bg-secondary p-3">
+                      <AdminForm action={settleEventAction} className="grid gap-3 rounded-md bg-secondary p-3">
                         <input type="hidden" name="eventId" value={event.id} />
                         <input type="hidden" name="eventStatus" value="SETTLED" />
                         <SelectField
@@ -267,12 +268,12 @@ export default async function AdminEventsPage() {
                           options={event.teams.map((team) => ({ value: team.id, label: team.name }))}
                         />
                         <SubmitButton disabled={!event.teams.length}>Winnaar uitbetalen</SubmitButton>
-                      </form>
-                      <form action={settleEventAction} className="grid content-end gap-3 rounded-md bg-secondary p-3">
+                      </AdminForm>
+                      <AdminForm action={settleEventAction} className="grid content-end gap-3 rounded-md bg-secondary p-3">
                         <input type="hidden" name="eventId" value={event.id} />
                         <input type="hidden" name="eventStatus" value="CANCELLED" />
                         <SubmitButton>Annuleren en terugbetalen</SubmitButton>
-                      </form>
+                      </AdminForm>
                     </div>
                   </details>
                 </article>

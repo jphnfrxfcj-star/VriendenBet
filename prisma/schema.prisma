@@ -238,7 +238,7 @@ model Attribute {
 model ParticipantAttribute {
   participantId String
   attributeId   String
-  score         Int
+  score         Float
   updatedAt     DateTime    @updatedAt
   participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
   attribute     Attribute   @relation(fields: [attributeId], references: [id], onDelete: Cascade)

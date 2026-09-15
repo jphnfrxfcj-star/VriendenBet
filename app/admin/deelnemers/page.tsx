@@ -1,3 +1,7 @@
+import { parameterName } from '@/lib/csv-import'
+import { AdminForm } from '../AdminForm'
+import { SearchableList } from '../SearchableList'
+import { CsvImport } from './CsvImport'
 import {
   createParticipantAction,
   createUserAction,
@@ -38,8 +42,11 @@ export default async function AdminParticipantsPage() {
       title="Deelnemers en accounts"
       subtitle="Beheer fysieke deelnemers, koppel accounts, wijzig rollen en reset pincodes."
     >
-      <AdminCard title="Nieuwe deelnemer">
-        <form action={createParticipantAction} className="grid gap-4 md:grid-cols-2">
+      <AdminCard title="Deelnemers en scores importeren">
+        <CsvImport participants={participants.map(({ id, name, nickname, attributes }) => ({ id, name, nickname, scores: Object.fromEntries(attributes.map((row) => [parameterName(row.attribute.name) ?? row.attribute.name, row.score])) }))} />
+      </AdminCard>
+      <AdminCard title="Nieuwe deelnemer" collapsed>
+        <AdminForm action={createParticipantAction} className="grid gap-4 md:grid-cols-2">
           <Field name="name" label="Naam" required />
           <Field name="nickname" label="Bijnaam" />
           <Field name="shirtSize" label="Shirtmaat" />
@@ -47,15 +54,17 @@ export default async function AdminParticipantsPage() {
           <div className="md:col-span-2">
             <SubmitButton>Deelnemer toevoegen</SubmitButton>
           </div>
-        </form>
+        </AdminForm>
       </AdminCard>
 
       <AdminCard title="Deelnemers">
         <div className="grid gap-3">
           {participants.length ? (
-            participants.map((participant) => (
-              <div key={participant.id} className="grid gap-4 rounded-md border bg-secondary p-3">
-                <form action={updateParticipantAction} className="grid gap-3 lg:grid-cols-[1fr_1fr_120px_1fr_auto]">
+            <SearchableList label="Deelnemer zoeken" items={participants.map((participant) => ({ id: participant.id, search: `${participant.name} ${participant.nickname ?? ''}`, content: (
+              <details className="rounded-md border bg-secondary p-3">
+                <summary className="cursor-pointer font-black">{participant.name}{participant.nickname ? ` · ${participant.nickname}` : ''} <span className="text-xs font-normal text-muted-foreground">· {participant.attributes.length} scores · {participant.isActive ? 'Actief' : 'Inactief'}</span></summary>
+                <div className="mt-4 grid gap-4">
+                <AdminForm action={updateParticipantAction} className="grid gap-3 lg:grid-cols-[1fr_1fr_120px_1fr_auto]">
                   <input type="hidden" name="id" value={participant.id} />
                   <Field name="name" label="Naam" defaultValue={participant.name} required />
                   <Field name="nickname" label="Bijnaam" defaultValue={participant.nickname} />
@@ -65,7 +74,7 @@ export default async function AdminParticipantsPage() {
                     <CheckField name="isActive" label="Actief" defaultChecked={participant.isActive} />
                     <SubmitButton>Profiel opslaan</SubmitButton>
                   </div>
-                </form>
+                </AdminForm>
 
                 <div className="rounded-md border bg-background p-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
@@ -75,8 +84,9 @@ export default async function AdminParticipantsPage() {
                     </span>
                   </div>
                   {attributes.length ? (
-                    <form action={setParticipantScoresAction} className="mt-3 grid gap-3">
+                    <AdminForm action={setParticipantScoresAction} className="mt-3 grid gap-3">
                       <input type="hidden" name="participantId" value={participant.id} />
+                      <p className="text-sm text-muted-foreground">Pas meerdere scores aan en sla ze samen op. Lege velden blijven ongewijzigd.</p>
                       <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                       {attributes.map((attribute) => {
                         const existing = participant.attributes.find((score) => score.attributeId === attribute.id)
@@ -86,9 +96,10 @@ export default async function AdminParticipantsPage() {
                             name={`score:${attribute.id}`}
                             label={attribute.name}
                             type="number"
+                            step="any"
                             min={attribute.minValue}
                             max={attribute.maxValue}
-                            defaultValue={existing?.score ?? attribute.minValue}
+                            defaultValue={existing?.score}
                           />
                         )
                       })}
@@ -96,21 +107,22 @@ export default async function AdminParticipantsPage() {
                       <div>
                         <SubmitButton>Ratings opslaan</SubmitButton>
                       </div>
-                    </form>
+                    </AdminForm>
                   ) : (
                     <EmptyState>Maak eerst eigenschappen aan om spelers te kunnen scoren.</EmptyState>
                   )}
                 </div>
-              </div>
-            ))
+                </div>
+              </details>
+            ) }))} />
           ) : (
             <EmptyState>Nog geen deelnemers.</EmptyState>
           )}
         </div>
       </AdminCard>
 
-      <AdminCard title="Nieuwe gebruiker">
-        <form action={createUserAction} className="grid gap-4 md:grid-cols-2">
+      <AdminCard title="Nieuwe gebruiker" collapsed>
+        <AdminForm action={createUserAction} className="grid gap-4 md:grid-cols-2">
           <Field name="displayName" label="Naam" required />
           <Field name="pin" label="Pincode" type="password" required />
           <SelectField
@@ -130,13 +142,15 @@ export default async function AdminParticipantsPage() {
           <div className="md:col-span-2">
             <SubmitButton>Gebruiker toevoegen</SubmitButton>
           </div>
-        </form>
+        </AdminForm>
       </AdminCard>
 
       <AdminCard title="Gebruikersaccounts">
         <div className="grid gap-3">
-          {users.map((user) => (
-            <form
+          <SearchableList label="Gebruiker zoeken" items={users.map((user) => ({ id: user.id, search: `${user.displayName} ${user.participant?.name ?? ''}`, content: (
+            <details className="rounded-md border bg-secondary p-3">
+              <summary className="cursor-pointer font-black">{user.displayName} <span className="text-xs font-normal text-muted-foreground">· {roleOptionLabel(user.role)} · {user.isActive ? 'Actief' : 'Inactief'}</span></summary>
+            <AdminForm
               key={user.id}
               action={updateUserAction}
               className="grid gap-3 rounded-md border bg-secondary p-3 lg:grid-cols-[1fr_150px_1fr_1fr_auto]"
@@ -163,8 +177,9 @@ export default async function AdminParticipantsPage() {
                 <CheckField name="isActive" label="Actief" defaultChecked={user.isActive} />
                 <SubmitButton>Opslaan</SubmitButton>
               </div>
-            </form>
-          ))}
+            </AdminForm>
+            </details>
+          ) }))} />
         </div>
       </AdminCard>
     </AdminPageShell>

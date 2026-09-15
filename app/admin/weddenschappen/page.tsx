@@ -1,3 +1,4 @@
+import { AdminForm } from '../AdminForm'
 import Link from 'next/link'
 import { openEventForBettingAction, openEventForTeamSelectionAction, openFootballMatchForBettingAction } from '../actions'
 import { AdminCard, AdminPageShell, EmptyState, SubmitButton } from '../shared'
@@ -106,19 +107,19 @@ function OpenControlList({ controls }: { controls: BetOpenControl[] }) {
                 Beheren
               </Link>
               {control.kind === 'weekend' ? (
-                <form action={openEventForTeamSelectionAction}>
+                <AdminForm action={openEventForTeamSelectionAction}>
                   <input type="hidden" name="id" value={control.id} />
                   <SubmitButton disabled={!control.canSelectTeams}>
                     {control.status === 'OPEN_FOR_SELECTION' ? 'Miel kan kiezen' : 'Laat Miel kiezen'}
                   </SubmitButton>
-                </form>
+                </AdminForm>
               ) : null}
-              <form action={control.kind === 'weekend' ? openEventForBettingAction : openFootballMatchForBettingAction}>
+              <AdminForm action={control.kind === 'weekend' ? openEventForBettingAction : openFootballMatchForBettingAction}>
                 <input type="hidden" name="id" value={control.id} />
                 <SubmitButton disabled={!control.canOpen}>
                   {control.status === 'ODDS_READY' || control.status === 'OPEN' ? 'Staat open' : 'Openzetten'}
                 </SubmitButton>
-              </form>
+              </AdminForm>
             </div>
           </div>
         </article>

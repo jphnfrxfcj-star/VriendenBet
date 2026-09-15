@@ -1,21 +1,11 @@
 import { calculateBetBuilderOdds } from './football'
 import { calculateTeamOdds } from './odds'
+import { csvParameters } from './parameters'
 
 export const attributes = [
-  'kracht',
-  'uithouding',
+  ...csvParameters,
   'snelheid',
-  'behendigheid',
-  'IQ',
-  'EQ',
-  'balgevoel',
-  'communicatie',
-  'testosteron',
-  'fijne motoriek',
-  'lenigheid',
   'competitiviteit',
-  'alcoholbestendigheid',
-  'geluk',
   'mentale weerbaarheid',
   'teamwerk',
 ]

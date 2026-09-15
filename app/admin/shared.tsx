@@ -53,12 +53,25 @@ export function AdminPageShell({
 export function AdminCard({
   title,
   description,
+  collapsed = false,
   children,
 }: {
   title: string
   description?: string
+  collapsed?: boolean
   children: ReactNode
 }) {
+  if (collapsed) return (
+    <Card>
+      <details>
+        <summary className="cursor-pointer p-5 font-black">{title}</summary>
+        <CardContent>
+          {description && <p className="mb-3 text-sm text-muted-foreground">{description}</p>}
+          {children}
+        </CardContent>
+      </details>
+    </Card>
+  )
   return (
     <Card>
       <CardHeader>

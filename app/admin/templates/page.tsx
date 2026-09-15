@@ -1,4 +1,5 @@
-import { createTemplateAction, setTemplateAttributeAction, updateTemplateAction } from '../actions'
+import { AdminForm } from '../AdminForm'
+import { createTemplateAction, setTemplateWeightsAction, updateTemplateAction } from '../actions'
 import {
   AdminCard,
   AdminPageShell,
@@ -34,8 +35,8 @@ export default async function AdminTemplatesPage() {
       title="Speltemplates"
       subtitle="Maak herbruikbare speltypes, teamformaten, marges, gevoeligheid en eigenschapsgewichten."
     >
-      <AdminCard title="Nieuw speltemplate">
-        <form action={createTemplateAction} className="grid gap-4 md:grid-cols-2">
+      <AdminCard title="Nieuw speltemplate" collapsed>
+        <AdminForm action={createTemplateAction} className="grid gap-4 md:grid-cols-2">
           <Field name="name" label="Naam" required />
           <SelectField name="format" label="Format" defaultValue="TEAM" options={formatOptions} />
           <Field name="teamCount" label="Aantal teams" type="number" defaultValue={2} min={1} />
@@ -61,7 +62,7 @@ export default async function AdminTemplatesPage() {
           <div className="md:col-span-2">
             <SubmitButton>Template toevoegen</SubmitButton>
           </div>
-        </form>
+        </AdminForm>
       </AdminCard>
 
       <section className="grid gap-3 md:grid-cols-3">
@@ -139,7 +140,7 @@ export default async function AdminTemplatesPage() {
 
                   <details className="rounded-md border bg-background p-3">
                     <summary className="cursor-pointer text-sm font-black">Template aanpassen</summary>
-                    <form action={updateTemplateAction} className="mt-3 grid gap-3 lg:grid-cols-4">
+                    <AdminForm action={updateTemplateAction} className="mt-3 grid gap-3 lg:grid-cols-4">
                       <input type="hidden" name="id" value={template.id} />
                       <Field name="name" label="Naam" defaultValue={template.name} required />
                       <SelectField name="format" label="Format" defaultValue={template.format} options={formatOptions} />
@@ -165,20 +166,21 @@ export default async function AdminTemplatesPage() {
                         <CheckField name="isActive" label="Actief" defaultChecked={template.isActive} />
                         <SubmitButton>Template opslaan</SubmitButton>
                       </div>
-                    </form>
+                    </AdminForm>
                   </details>
 
                   <details className="rounded-md border bg-background p-3">
                     <summary className="cursor-pointer text-sm font-black">Gewichten beheren</summary>
-                    <div className="mt-3 grid gap-2 md:grid-cols-2">
+                    <AdminForm action={setTemplateWeightsAction} className="mt-3 grid gap-3">
+                      <input type="hidden" name="gameTemplateId" value={template.id} />
+                      <p className="text-sm text-muted-foreground">Verdeel het belang over de parameters. Samen vormen de gewichten 1 (100%).</p>
+                      <div className="grid gap-2 md:grid-cols-2">
                         {attributes.map((attribute) => {
                           const existing = template.attributes.find((row) => row.attributeId === attribute.id)
                           return (
-                            <form key={attribute.id} action={setTemplateAttributeAction} className="flex items-end gap-2">
-                              <input type="hidden" name="gameTemplateId" value={template.id} />
-                              <input type="hidden" name="attributeId" value={attribute.id} />
+                            <div key={attribute.id}>
                               <Field
-                                name="weight"
+                                name={`weight:${attribute.id}`}
                                 label={attribute.name}
                                 type="number"
                                 step="0.01"
@@ -186,11 +188,12 @@ export default async function AdminTemplatesPage() {
                                 max={1}
                                 defaultValue={existing ? String(existing.weight) : 0}
                               />
-                              <SubmitButton>OK</SubmitButton>
-                            </form>
+                            </div>
                           )
                         })}
-                    </div>
+                      </div>
+                      <div><SubmitButton>Alle gewichten opslaan</SubmitButton></div>
+                    </AdminForm>
                   </details>
                 </article>
               )

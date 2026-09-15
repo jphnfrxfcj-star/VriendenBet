@@ -1,3 +1,4 @@
+import { AdminForm } from '../AdminForm'
 import { updateSuggestionAction } from '../actions'
 import { AdminCard, AdminPageShell, EmptyState, SelectField, SubmitButton, TextField } from '../shared'
 import { prisma } from '@/lib/prisma'
@@ -19,7 +20,7 @@ export default async function AdminSuggestionsPage() {
         <div className="grid gap-3">
           {suggestions.length ? (
             suggestions.map((suggestion) => (
-              <form key={suggestion.id} action={updateSuggestionAction} className="grid gap-3 rounded-md border bg-secondary p-3">
+              <AdminForm key={suggestion.id} action={updateSuggestionAction} className="grid gap-3 rounded-md border bg-secondary p-3">
                 <input type="hidden" name="id" value={suggestion.id} />
                 <div>
                   <h2 className="text-xl font-black">{suggestion.title}</h2>
@@ -50,7 +51,7 @@ export default async function AdminSuggestionsPage() {
                     <SubmitButton>Opslaan</SubmitButton>
                   </div>
                 </div>
-              </form>
+              </AdminForm>
             ))
           ) : (
             <EmptyState>Nog geen spelvoorstellen.</EmptyState>

@@ -1,3 +1,4 @@
+import { AdminForm } from '../AdminForm'
 import { Prisma } from '@prisma/client'
 import { AdminCard, AdminPageShell, CheckField, EmptyState, Field, SubmitButton, TextField } from '../shared'
 import {
@@ -37,7 +38,7 @@ export default async function AdminSlotPage() {
       <section className="grid gap-5 xl:grid-cols-[1fr_0.85fr]">
         <AdminCard title="Configuratie">
           {editableConfig ? (
-            <form action={updateSlotConfigurationAction} className="grid gap-3">
+            <AdminForm action={updateSlotConfigurationAction} className="grid gap-3">
               <input type="hidden" name="id" value={editableConfig.id} />
               <div className="grid gap-3 md:grid-cols-2">
                 <Field label="Naam" name="name" defaultValue={editableConfig.name} required />
@@ -54,7 +55,7 @@ export default async function AdminSlotPage() {
                 <SubmitButton disabled={!canEdit}>Concept opslaan</SubmitButton>
               </div>
               {!canEdit ? <p className="text-sm text-muted-foreground">Maak eerst een conceptversie om instellingen te wijzigen.</p> : null}
-            </form>
+            </AdminForm>
           ) : (
             <EmptyState>Geen slotconfiguratie gevonden. Draai de seed opnieuw.</EmptyState>
           )}
@@ -66,14 +67,14 @@ export default async function AdminSlotPage() {
               <p className="font-black">Actief: {data.active ? `v${data.active.version} - ${data.active.name}` : 'geen'}</p>
               <p className="text-muted-foreground">Concept: {data.draft ? `v${data.draft.version} - ${data.draft.name}` : 'geen'}</p>
             </div>
-            <form action={createSlotDraftFromActiveAction}>
+            <AdminForm action={createSlotDraftFromActiveAction}>
               <SubmitButton>Nieuw concept maken</SubmitButton>
-            </form>
+            </AdminForm>
             {data.draft ? (
-              <form action={publishSlotConfigurationAction}>
+              <AdminForm action={publishSlotConfigurationAction}>
                 <input type="hidden" name="id" value={data.draft.id} />
                 <SubmitButton>Concept publiceren</SubmitButton>
-              </form>
+              </AdminForm>
             ) : null}
           </div>
         </AdminCard>
@@ -82,7 +83,7 @@ export default async function AdminSlotPage() {
       <AdminCard title="Symbolen">
         <div className="grid gap-3 lg:grid-cols-2">
           {(editableConfig?.symbols ?? []).map((symbol) => (
-            <form key={symbol.id} action={updateSlotSymbolAction} className="grid gap-3 rounded-md border bg-secondary p-3">
+            <AdminForm key={symbol.id} action={updateSlotSymbolAction} className="grid gap-3 rounded-md border bg-secondary p-3">
               <input type="hidden" name="id" value={symbol.id} />
               <div className="grid gap-3 md:grid-cols-2">
                 <Field label="Naam" name="name" defaultValue={symbol.name} />
@@ -92,7 +93,7 @@ export default async function AdminSlotPage() {
               </div>
               <CheckField label="Actief" name="isActive" defaultChecked={symbol.isActive} />
               <SubmitButton disabled={!canEdit}>Symbool opslaan</SubmitButton>
-            </form>
+            </AdminForm>
           ))}
         </div>
       </AdminCard>
@@ -115,7 +116,7 @@ export default async function AdminSlotPage() {
         <AdminCard title="Bonuswiel">
           <div className="grid gap-3">
             {(editableConfig?.bonusWheelConfigurations[0]?.segments ?? []).map((segment) => (
-              <form key={segment.id} action={updateSlotBonusSegmentAction} className="grid gap-3 rounded-md bg-secondary p-3">
+              <AdminForm key={segment.id} action={updateSlotBonusSegmentAction} className="grid gap-3 rounded-md bg-secondary p-3">
                 <input type="hidden" name="id" value={segment.id} />
                 <div className="grid gap-3 md:grid-cols-3">
                   <Field label="Label" name="label" defaultValue={segment.label} />
@@ -124,7 +125,7 @@ export default async function AdminSlotPage() {
                 </div>
                 <CheckField label="Actief" name="isActive" defaultChecked={segment.isActive} />
                 <SubmitButton disabled={!canEdit}>Segment opslaan</SubmitButton>
-              </form>
+              </AdminForm>
             ))}
           </div>
         </AdminCard>
@@ -133,7 +134,7 @@ export default async function AdminSlotPage() {
       <AdminCard title="Jackpots">
         <div className="grid gap-3 lg:grid-cols-3">
           {data.jackpots.map((jackpot) => (
-            <form key={jackpot.id} action={updateSlotJackpotAction} className="grid gap-3 rounded-md border bg-secondary p-3">
+            <AdminForm key={jackpot.id} action={updateSlotJackpotAction} className="grid gap-3 rounded-md border bg-secondary p-3">
               <input type="hidden" name="id" value={jackpot.id} />
               <h3 className="text-lg font-black">{jackpot.type}</h3>
               <Field label="Start" name="startAmount" type="number" defaultValue={Number(jackpot.startAmount)} />
@@ -143,19 +144,19 @@ export default async function AdminSlotPage() {
               <TextField label="Reden" name="reason" rows={2} placeholder="Waarom wijzig je deze jackpot?" />
               <CheckField label="Actief" name="isActive" defaultChecked={jackpot.isActive} />
               <SubmitButton>Jackpot opslaan</SubmitButton>
-            </form>
+            </AdminForm>
           ))}
         </div>
       </AdminCard>
 
       <section className="grid gap-5 xl:grid-cols-2">
         <AdminCard title="Mystery challenges">
-          <form action={createSlotChallengeAction} className="mb-4 grid gap-3 rounded-md border bg-secondary p-3">
+          <AdminForm action={createSlotChallengeAction} className="mb-4 grid gap-3 rounded-md border bg-secondary p-3">
             <Field label="Titel" name="title" placeholder="Nieuwe opdracht" required />
             <TextField label="Omschrijving" name="description" rows={3} placeholder="Korte opdracht voor Miel" />
             <Field label="Beloning credits" name="rewardCredits" type="number" min={0} />
             <SubmitButton>Challenge toevoegen</SubmitButton>
-          </form>
+          </AdminForm>
           <div className="grid gap-2">
             {data.challenges.map((challenge) => (
               <div key={challenge.id} className="rounded-md bg-secondary p-3 text-sm">
@@ -171,7 +172,7 @@ export default async function AdminSlotPage() {
           <div className="grid gap-3">
             {data.openAssignments.length ? (
               data.openAssignments.map((assignment) => (
-                <form key={assignment.id} action={completeSlotChallengeAssignmentAction} className="rounded-md bg-secondary p-3 text-sm">
+                <AdminForm key={assignment.id} action={completeSlotChallengeAssignmentAction} className="rounded-md bg-secondary p-3 text-sm">
                   <input type="hidden" name="id" value={assignment.id} />
                   <strong>{assignment.challenge.title}</strong>
                   <p className="mt-1 text-muted-foreground">{assignment.challenge.description}</p>
@@ -179,7 +180,7 @@ export default async function AdminSlotPage() {
                   <div className="mt-3">
                     <SubmitButton>Voltooid en belonen</SubmitButton>
                   </div>
-                </form>
+                </AdminForm>
               ))
             ) : (
               <EmptyState>Geen openstaande slotchallenges.</EmptyState>

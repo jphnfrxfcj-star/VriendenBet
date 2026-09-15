@@ -34,10 +34,17 @@ export default async function AdminDashboardPage() {
         <p className="mb-2 text-xs font-black uppercase text-primary">Bert en Jean</p>
         <h1 className="text-4xl font-black tracking-normal">Admin dashboard</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Centrale cockpit voor deelnemers, scores, games, odds, wallet, voorstellen en auditlogs.
+          Beheer deelnemers, zet spellen klaar en handel weddenschappen af.
         </p>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+      <div className="grid gap-3 sm:grid-cols-3">
+        {[
+          ['Deelnemers en scores', 'Importeer een CSV of pas ratings aan.', '/admin/deelnemers'],
+          ['Spellen klaarzetten', 'Kies een spel, maak teams en zet het open.', '/admin/evenementen'],
+          ['Weddenschappen afhandelen', 'Bekijk open weddenschappen en resultaten.', '/admin/weddenschappen'],
+        ].map(([title, description, href]) => <Link key={href} href={href} className="rounded-md border bg-card p-4 hover:border-primary"><h2 className="font-black text-primary">{title} →</h2><p className="mt-2 text-sm text-muted-foreground">{description}</p></Link>)}
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {metrics.map(([label, value, href]) => (
           <Link key={label} href={href}>
             <Card className="h-full transition hover:border-primary">

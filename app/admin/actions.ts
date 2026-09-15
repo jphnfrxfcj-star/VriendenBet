@@ -176,14 +176,19 @@ export async function setParticipantScoresAction(formData: FormData) {
   const session = await adminUser()
   const participantId = value(formData, 'participantId')
   const scores = Array.from(formData.entries())
-    .filter(([key]) => key.startsWith('score:'))
+    .filter(([key, raw]) => key.startsWith('score:') && String(raw).trim() !== '')
     .map(([key, rawScore]) => ({
       attributeId: key.replace('score:', ''),
       score: Number(rawScore),
     }))
-    .filter((score) => score.attributeId && Number.isFinite(score.score))
 
-  if (!participantId || !scores.length) return
+
+  if (!participantId || !scores.length) throw new Error('Vul minstens één score in.')
+  const attributes = await prisma.attribute.findMany({ where: { id: { in: scores.map((score) => score.attributeId) } } })
+  if (scores.some(({ attributeId, score }) => {
+    const attribute = attributes.find((item) => item.id === attributeId)
+    return !attribute || !Number.isFinite(score) || score < attribute.minValue || score > attribute.maxValue
+  })) throw new Error('Een score valt buiten de toegestane schaal.')
 
   await prisma.$transaction(
     scores.map(({ attributeId, score }) =>
@@ -240,6 +245,24 @@ export async function setTemplateAttributeAction(formData: FormData) {
   })
   revalidatePath('/admin/templates')
   return
+}
+
+export async function setTemplateWeightsAction(formData: FormData) {
+  const session = await adminUser()
+  const gameTemplateId = value(formData, 'gameTemplateId')
+  const weights = Array.from(formData.entries())
+    .filter(([key]) => key.startsWith('weight:'))
+    .map(([key, raw]) => ({ attributeId: key.slice(7), weight: Number(raw) }))
+  if (!gameTemplateId || !weights.length || weights.some((row) => !Number.isFinite(row.weight) || row.weight < 0 || row.weight > 1)) {
+    throw new Error('Gewichten moeten tussen 0 en 1 liggen.')
+  }
+  await prisma.$transaction(weights.map(({ attributeId, weight }) => prisma.gameTemplateAttribute.upsert({
+    where: { gameTemplateId_attributeId: { gameTemplateId, attributeId } },
+    update: { weight },
+    create: { gameTemplateId, attributeId, weight },
+  })))
+  await audit(session.userId, 'GAME_TEMPLATE_WEIGHTS_UPDATED', 'GameTemplate', gameTemplateId, { count: weights.length })
+  revalidatePath('/admin/templates')
 }
 
 export async function updateTemplateAction(formData: FormData) {
