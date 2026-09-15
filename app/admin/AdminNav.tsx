@@ -6,7 +6,8 @@ import { usePathname, useRouter } from 'next/navigation'
 const groups = [
   { title: 'Overzicht', items: [['Dashboard', '/admin']] },
   { title: 'Deelnemers', items: [['Deelnemers en scores', '/admin/deelnemers'], ['Parameters', '/admin/eigenschappen']] },
-  { title: 'Spellen', items: [['Speltypes', '/admin/templates'], ['Weekendspellen', '/admin/evenementen'], ['Voetbal', '/admin/voetbal'], ['Spelvoorstellen', '/admin/voorstellen']] },
+  { title: 'Spellen', items: [['Weekendspellen', '/admin/evenementen'], ['Voetbal', '/admin/voetbal'], ['Spelvoorstellen', '/admin/voorstellen']] },
+  { title: 'Geavanceerd', items: [['Spelinstellingen', '/admin/templates']] },
   { title: 'Weddenschappen en saldo', items: [['Weddenschappen', '/admin/weddenschappen'], ['Miel Smash', '/admin/slot'], ['Saldo en transacties', '/admin/wallet'], ['Activiteitenlog', '/admin/auditlog']] },
 ]
 export function AdminNav() {

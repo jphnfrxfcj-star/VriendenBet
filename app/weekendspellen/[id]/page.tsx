@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { StatusBadge } from '@/components/StatusBadge'
 import { getSessionUser } from '@/lib/auth'
@@ -29,11 +30,12 @@ export default async function WeekendGameDetailPage({ params }: { params: Promis
         <StatusBadge status={event.status} />
       </div>
 
+      {session?.role === 'ADMIN' && <Link href="/admin/evenementen" className="font-bold text-primary underline">← Terug naar spelbeheer</Link>}
       <TeamBuilder
         initialTeams={initialTeams}
-        participants={event.participants.length ? event.participants : participants}
-        participantRatings={event.participantRatings.length ? event.participantRatings : participantRatings}
-        weights={Object.keys(event.weights).length ? event.weights : tugOfWarWeights}
+        participants={event.dbBacked ? event.participants : participants}
+        participantRatings={event.dbBacked ? event.participantRatings : participantRatings}
+        weights={event.dbBacked ? event.weights : tugOfWarWeights}
         status={event.status}
         role={session?.role}
         mielParticipantId={event.mielParticipantId ?? 'p-18'}

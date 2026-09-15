@@ -13,11 +13,11 @@ export default async function WeekendGamesPage() {
   return (
     <div className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 md:py-10">
       <div>
-        <p className="mb-2 text-xs font-black uppercase text-primary">Module 1</p>
+        <p className="mb-2 text-xs font-black uppercase text-primary">Samen spelen</p>
         <h1 className="text-4xl font-black tracking-normal md:text-5xl">Dynamische weekendspellen</h1>
         <p className="mt-3 max-w-2xl text-muted-foreground">
-          Miel stelt deelnemers of teams samen. De server berekent scores, kansen en odds op basis
-          van eigenschappen en templategewichten.
+          Kies een spel en stel de teams samen. De odds worden automatisch berekend.
+          Daarna kan Miel inzetten op zijn eigen team.
         </p>
       </div>
 
