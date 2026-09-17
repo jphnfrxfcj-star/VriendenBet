@@ -168,7 +168,7 @@ export default async function AdminFootballPage() {
                     <div className="mt-3 grid gap-3">
                       {market.selections.map((selection) => (
                         <div key={selection.id} className="grid gap-2 rounded-md bg-secondary p-3">
-                          <AdminForm action={updateFootballSelectionAction} className="grid gap-3 lg:grid-cols-[1fr_120px_160px_140px_auto]">
+                          <AdminForm action={updateFootballSelectionAction} className="grid gap-3 sm:grid-cols-2">
                             <input type="hidden" name="id" value={selection.id} />
                             <Field name="label" label="Label" defaultValue={selection.label} required />
                             <Field name="line" label="Lijn" defaultValue={selection.line} />

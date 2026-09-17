@@ -14,7 +14,7 @@ export default async function HomePage() {
   return (
     <div className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 md:py-10">
       <section className="grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
-        <div className="relative overflow-hidden rounded-md border bg-card/88 p-5 shadow-2xl shadow-black/20 md:p-8">
+        <div className="relative isolate overflow-hidden rounded-lg border bg-card/90 p-5 shadow-2xl shadow-black/20 md:p-8">
           <Image
             src="/hero-vriendenbet.png"
             alt=""
@@ -24,20 +24,20 @@ export default async function HomePage() {
             sizes="(min-width: 1024px) 760px, 100vw"
           />
           <div className="absolute inset-0 -z-10 bg-gradient-to-r from-card via-card/92 to-card/40" />
-          <p className="mb-3 text-xs font-black uppercase text-primary">Besloten weekend sportsbook</p>
+          <p className="mb-3 text-xs font-black uppercase text-primary">Samen het weekend beleven</p>
           <h1 className="max-w-3xl text-5xl font-black leading-none tracking-normal md:text-7xl">MielBet</h1>
-          <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">
-            Twee ludieke modules: dynamische weekendspellen met ratings en een aparte betbuilder
-            voor Miels voetbalwedstrijd. Alleen virtuele eurobudgetten, geen echt geld.
+          <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground md:text-lg">
+            Kies een spel, stel je team samen en volg Miels match. We spelen met virtueel budget.
           </p>
-          <div className="mt-7 flex flex-wrap gap-3">
+          <div className="mt-6 grid gap-3 sm:flex sm:flex-wrap">
             <Link className="inline-flex min-h-11 items-center rounded-md bg-primary px-4 py-2 text-sm font-black text-primary-foreground" href="/weekendspellen">
-              Open weekendspellen
+              Bekijk de spellen
             </Link>
             <Link className="inline-flex min-h-11 items-center rounded-md bg-secondary px-4 py-2 text-sm font-black" href="/match">
               Naar voetbalmatch
             </Link>
           </div>
+          <Link href="/spel-voorstellen" className="mt-3 inline-flex min-h-11 items-center text-sm font-bold text-primary underline underline-offset-4">Zelf een spel aanvragen</Link>
         </div>
 
         <Card>

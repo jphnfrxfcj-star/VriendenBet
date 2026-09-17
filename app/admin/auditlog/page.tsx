@@ -39,7 +39,7 @@ export default async function AdminAuditPage({
         <div className="grid gap-2">
           {logs.length ? (
             logs.map((log) => (
-              <div key={log.id} className="grid gap-2 rounded-md border bg-secondary p-3 text-sm md:grid-cols-[180px_160px_1fr_180px]">
+              <div key={log.id} className="grid gap-2 rounded-md border bg-secondary p-3 text-sm sm:grid-cols-2">
                 <strong>{log.action}</strong>
                 <span className="text-muted-foreground">{log.entityType}</span>
                 <span className="text-muted-foreground">

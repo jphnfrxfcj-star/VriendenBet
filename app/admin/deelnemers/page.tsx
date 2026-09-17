@@ -64,7 +64,7 @@ export default async function AdminParticipantsPage() {
               <details className="rounded-md border bg-secondary p-3">
                 <summary className="cursor-pointer font-black">{participant.name}{participant.nickname ? ` · ${participant.nickname}` : ''} <span className="text-xs font-normal text-muted-foreground">· {participant.attributes.length} scores · {participant.isActive ? 'Actief' : 'Inactief'}</span></summary>
                 <div className="mt-4 grid gap-4">
-                <AdminForm action={updateParticipantAction} className="grid gap-3 lg:grid-cols-[1fr_1fr_120px_1fr_auto]">
+                <AdminForm action={updateParticipantAction} className="grid gap-3 sm:grid-cols-2">
                   <input type="hidden" name="id" value={participant.id} />
                   <Field name="name" label="Naam" defaultValue={participant.name} required />
                   <Field name="nickname" label="Bijnaam" defaultValue={participant.nickname} />
@@ -153,7 +153,7 @@ export default async function AdminParticipantsPage() {
             <AdminForm
               key={user.id}
               action={updateUserAction}
-              className="grid gap-3 rounded-md border bg-secondary p-3 lg:grid-cols-[1fr_150px_1fr_1fr_auto]"
+              className="grid gap-3 rounded-md border bg-secondary p-3 sm:grid-cols-2"
             >
               <input type="hidden" name="id" value={user.id} />
               <Field name="displayName" label="Naam" defaultValue={user.displayName} required />

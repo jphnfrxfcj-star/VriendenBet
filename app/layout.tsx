@@ -13,7 +13,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="nl" className="dark" data-scroll-behavior="smooth">
       <body>
         <AppNav />
-        <main className="sportsbook-grid min-h-[calc(100vh-4rem)] pb-20 md:pb-0">{children}</main>
+        <main id="main-content" className="sportsbook-grid min-h-[calc(100dvh-4rem)] pb-[calc(5rem+env(safe-area-inset-bottom))] xl:pb-0">{children}</main>
       </body>
     </html>
   )

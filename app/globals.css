@@ -31,6 +31,33 @@
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+}
+
+/* Allow long game names and identifiers to wrap inside narrow cards. */
+main {
+  overflow-wrap: anywhere;
+}
+
+main :where(.grid, .flex) > * {
+  min-width: 0;
+}
+
+:where(a, button, summary, select, input, textarea):focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 3px;
+}
+
+@media (max-width: 639px) {
+  main h1 {
+    font-size: 2rem;
+    line-height: 1.15;
+  }
+
+  /* Prevent iOS from zooming the page when a form field receives focus. */
+  main input, main select, main textarea {
+    font-size: 16px;
+  }
 }
 
 body {

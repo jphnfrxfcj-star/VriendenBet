@@ -13,8 +13,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   }
 
   return (
-    <div className="mx-auto grid w-full max-w-7xl gap-5 px-4 py-6 md:grid-cols-[240px_1fr] md:py-10">
-      <aside className="min-w-0 self-start md:sticky md:top-4"><AdminNav /></aside>
+    <div className="mx-auto grid w-full max-w-7xl gap-5 px-4 py-6 lg:grid-cols-[220px_minmax(0,1fr)] md:py-10">
+      <aside className="min-w-0 self-start lg:sticky lg:top-20"><AdminNav /></aside>
       <div className="grid min-w-0 gap-4">
         {children}
       </div>

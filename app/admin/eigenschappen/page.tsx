@@ -40,7 +40,7 @@ export default async function AdminAttributesPage() {
             <AdminForm
               key={attribute.id}
               action={updateAttributeAction}
-              className="grid gap-3 rounded-md border bg-secondary p-3 md:grid-cols-[minmax(0,1fr)_100px_100px_minmax(0,1fr)_auto] md:items-end"
+              className="grid gap-3 rounded-md border bg-secondary p-3 sm:grid-cols-2 sm:items-end"
             >
               <input type="hidden" name="id" value={attribute.id} />
               <Field name="name" label="Naam" defaultValue={attribute.name} required />

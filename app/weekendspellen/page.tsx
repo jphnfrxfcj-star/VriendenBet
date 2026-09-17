@@ -14,15 +14,16 @@ export default async function WeekendGamesPage() {
     <div className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 md:py-10">
       <div>
         <p className="mb-2 text-xs font-black uppercase text-primary">Samen spelen</p>
-        <h1 className="text-4xl font-black tracking-normal md:text-5xl">Dynamische weekendspellen</h1>
+        <h1 className="text-4xl font-black tracking-normal md:text-5xl">Weekendspellen</h1>
         <p className="mt-3 max-w-2xl text-muted-foreground">
           Kies een spel en stel de teams samen. De odds worden automatisch berekend.
           Daarna kan Miel inzetten op zijn eigen team.
         </p>
+        <Link href="/spel-voorstellen" className="mt-4 inline-flex min-h-11 items-center rounded-md bg-primary px-4 py-2 text-sm font-black text-primary-foreground">Spel aanvragen</Link>
       </div>
 
       {!events.length && <p className="rounded-md border p-4 text-sm text-muted-foreground">Er zijn nog geen spellen. <Link href="/spel-voorstellen" className="text-primary underline">Vraag een spel aan</Link>; na goedkeuring verschijnt het hier.</p>}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {events.map((event) => (
           <Link key={event.id} href={`/weekendspellen/${event.id}`}>
             <Card className="h-full transition hover:border-primary">
