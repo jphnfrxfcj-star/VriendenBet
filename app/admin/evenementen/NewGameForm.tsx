@@ -8,18 +8,22 @@ import { createWeekendGameAction } from './actions'
 
 export function NewGameForm({ attributes }: { attributes: { id: string; name: string }[] }) {
   const [size, setSize] = useState(2)
+  const [teamCount, setTeamCount] = useState(2)
   const router = useRouter()
   return <AdminForm action={async (data) => {
     const event = await createWeekendGameAction(data)
     router.push(`/weekendspellen/${event.id}`)
   }} className="grid gap-4">
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className="grid gap-4 sm:grid-cols-3">
       <Field name="title" label="Naam van het spel" placeholder="Bijv. beerpong, kubb of touwtrekken" required />
+      <label className="grid gap-2 text-sm font-black">Aantal teams
+        <input className="min-h-11 w-full rounded-md border bg-background px-3" name="teamCount" type="number" min={2} max={8} required value={teamCount} onChange={(event) => setTeamCount(Number(event.target.value))} />
+      </label>
       <label className="grid gap-2 text-sm font-black">Spelers per team
         <input className="min-h-11 w-full rounded-md border bg-background px-3" name="playersPerTeam" type="number" min={1} max={50} required value={size} onChange={(event) => setSize(Number(event.target.value))} />
       </label>
     </div>
-    <p className="text-sm font-bold text-primary">2 teams · {size || 0} tegen {size || 0} · {(size || 0) * 2} spelers in totaal</p>
+    <p className="text-sm font-bold text-primary">{teamCount || 0} teams · {size || 0} spelers per team · {(size || 0) * (teamCount || 0)} spelers in totaal</p>
     <details className="rounded-md border p-3">
       <summary className="cursor-pointer text-sm font-bold">Teamnamen, regels en extra opties</summary>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -37,6 +41,6 @@ export function NewGameForm({ attributes }: { attributes: { id: string; name: st
       </fieldset>}
     </details>
     <div><SubmitButton>Spel toevoegen</SubmitButton></div>
-    <p className="text-sm text-muted-foreground">De twee teams staan meteen klaar. Jij of Miel kan daarna de spelers kiezen.</p>
+    <p className="text-sm text-muted-foreground">De teams staan meteen klaar. Jij of Miel kan daarna de spelers kiezen.</p>
   </AdminForm>
 }

@@ -15,9 +15,9 @@ Een gedeeltelijke CSV met `Naam` en één of meer bekende parameterkolommen werk
 
 - Deelnemers en gebruikers zijn doorzoekbaar. Open alleen de persoon die je wilt aanpassen.
 - Scores staan bij deelnemers en worden per persoon samen opgeslagen.
-- Spelgewichten worden per speltype samen opgeslagen.
+- Spellen en spelaanvragen staan samen in één overzicht. Parameters kies je optioneel bij het spel.
 - Formulieren tonen voortgang en resultaat. Bij een fout blijft de invoer staan.
-- Nieuwe deelnemers, accounts, parameters, speltypes en voetbalonderdelen staan in uitklapbare formulieren.
+- Nieuwe deelnemers, accounts, parameters en voetbalonderdelen staan in uitklapbare formulieren.
 
 ## Uitrollen
 

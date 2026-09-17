@@ -46,7 +46,7 @@ export async function AppNav() {
             <Link href="/match">Miels match</Link>
             <Link href="/slot">Slot</Link>
             <Link href="/deelnemers">Deelnemers</Link>
-            <Link href="/spel-voorstellen">Spel voorstellen</Link>
+            <Link href="/spel-voorstellen">Spel aanvragen</Link>
             {user?.role === 'ADMIN' ? (
               <Link href="/admin" className="inline-flex items-center gap-2 text-primary">
                 <Shield className="size-4" />

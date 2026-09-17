@@ -94,6 +94,7 @@ export const tugOfWarOdds = calculateTeamOdds(tugOfWarTeams, participantRatings,
 export const weekendEvents = [
   {
     id: 'touwtrekken-4v4',
+    exactTeamSize: 4,
     title: 'Touwtrekken 4 tegen 4',
     status: 'ODDS_READY',
     startsAt: 'Zaterdag 15:00',
@@ -102,6 +103,7 @@ export const weekendEvents = [
   },
   {
     id: 'penaltycompetitie',
+    exactTeamSize: 1,
     title: 'Penaltycompetitie',
     status: 'OPEN_FOR_SELECTION',
     startsAt: 'Zaterdag 17:30',
@@ -110,6 +112,7 @@ export const weekendEvents = [
   },
   {
     id: 'quiz',
+    exactTeamSize: 2,
     title: 'Nachtquiz',
     status: 'DRAFT',
     startsAt: 'Vrijdag 22:00',

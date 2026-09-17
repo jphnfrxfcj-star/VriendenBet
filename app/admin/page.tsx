@@ -25,7 +25,7 @@ export default async function AdminDashboardPage() {
     ['Open weddenschappen', String(openEventBets + openBetBuilders), '/admin/weddenschappen'],
     ['Slot spins', String(slotSpins), '/admin/slot'],
     ['Open voetbalmarkten', String(openFootballMarkets), '/admin/voetbal'],
-    ['Open voorstellen', String(openSuggestions), '/admin/voorstellen'],
+    ['Open voorstellen', String(openSuggestions), '/admin/evenementen#aanvragen'],
   ]
 
   return (
@@ -116,7 +116,7 @@ async function getDashboardData() {
     return await Promise.all([
       prisma.event.count({ where: { status: { in: ['OPEN_FOR_SELECTION', 'ODDS_READY', 'IN_PROGRESS'] } } }),
       prisma.event.count({ where: { status: { in: ['BET_PLACED', 'IN_PROGRESS'] } } }),
-      prisma.gameSuggestion.count({ where: { status: { in: ['SUBMITTED', 'UNDER_REVIEW'] } } }),
+      prisma.gameSuggestion.count({ where: { status: { not: 'REJECTED' }, event: { is: null } } }),
       prisma.footballMarket.count({ where: { status: 'OPEN' } }),
       prisma.eventBet.findMany({ include: { event: true, selectedTeam: true }, orderBy: { placedAt: 'desc' }, take: 5 }),
       prisma.walletTransaction.findMany({ include: { wallet: { include: { user: true } } }, orderBy: { createdAt: 'desc' }, take: 5 }),

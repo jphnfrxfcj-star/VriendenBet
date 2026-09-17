@@ -1,3 +1,4 @@
+import { TeamSizeForm } from '@/app/admin/evenementen/TeamSizeForm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { StatusBadge } from '@/components/StatusBadge'
@@ -31,6 +32,7 @@ export default async function WeekendGameDetailPage({ params }: { params: Promis
       </div>
 
       {session?.role === 'ADMIN' && <Link href="/admin/evenementen" className="font-bold text-primary underline">← Terug naar spelbeheer</Link>}
+      {session?.role === 'ADMIN' && event.dbBacked && event.canResize && <TeamSizeForm key={`${event.id}:${event.exactTeamSize}`} eventId={event.id} playersPerTeam={event.exactTeamSize} teamCount={event.teamCount} />}
       <TeamBuilder
         initialTeams={initialTeams}
         participants={event.dbBacked ? event.participants : participants}
@@ -39,7 +41,7 @@ export default async function WeekendGameDetailPage({ params }: { params: Promis
         status={event.status}
         role={session?.role}
         mielParticipantId={event.mielParticipantId ?? 'p-18'}
-        exactTeamSize={event.exactTeamSize ?? 4}
+        exactTeamSize={event.exactTeamSize}
         eventId={event.dbBacked ? event.id : undefined}
       />
     </div>
@@ -51,6 +53,7 @@ async function getWeekendEvent(id: string) {
     const event = await prisma.event.findUnique({
       where: { id },
       include: {
+        _count: { select: { bets: true } },
         gameTemplate: { include: { attributes: { include: { attribute: true } } } },
         participants: { include: { participant: { include: { attributes: { include: { attribute: true } } } } } },
         teams: {
@@ -82,6 +85,7 @@ async function getWeekendEvent(id: string) {
         status: event.status,
         startsAt: event.startsAt?.toLocaleString('nl-BE') ?? 'Nog te bepalen',
         dbBacked: true,
+        canResize: ['DRAFT', 'OPEN_FOR_SELECTION', 'ODDS_READY'].includes(event.status) && event._count.bets === 0,
         exactTeamSize: event.gameTemplate.exactTeamSize ?? event.gameTemplate.maxPlayersPerTeam,
         teamCount: event.gameTemplate.teamCount,
         mielParticipantId: miel?.participantId,
@@ -124,7 +128,7 @@ async function getWeekendEvent(id: string) {
   }
 
   const demoEvent = weekendEvents.find((item) => item.id === id)
-  return demoEvent ? { ...demoEvent, dbBacked: false, teamCount: 2, participants: [], participantRatings: [], weights: {} } : null
+  return demoEvent ? { ...demoEvent, dbBacked: false, canResize: false, teamCount: 2, participants: [], participantRatings: [], weights: {} } : null
 }
 
 function createEmptyTeams(teamCount: number) {

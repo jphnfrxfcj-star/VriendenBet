@@ -1,3 +1,5 @@
+import { GameRequests } from './GameRequests'
+import { TeamSizeForm } from './TeamSizeForm'
 import Link from 'next/link'
 import { AdminForm } from '../AdminForm'
 import { SearchableList } from '../SearchableList'
@@ -25,6 +27,7 @@ export default async function AdminEventsPage() {
   ])
   return <AdminPageShell title="Weekendspellen" subtitle="Spel toevoegen → spelers kiezen → inzetten openen. De odds worden automatisch berekend.">
     <AdminCard title="Nieuw spel"><NewGameForm attributes={attributes} /></AdminCard>
+    <GameRequests />
     <AdminCard title="Jullie spellen">
       {!events.length ? <EmptyState>Voeg hierboven jullie eerste spel toe.</EmptyState> : <SearchableList label="Spel zoeken" items={events.map((event) => {
         const size = event.gameTemplate.exactTeamSize ?? event.gameTemplate.maxPlayersPerTeam
@@ -39,6 +42,7 @@ export default async function AdminEventsPage() {
             </div>
             <StatusBadge status={event.status} />
           </div>
+          {['DRAFT', 'OPEN_FOR_SELECTION', 'ODDS_READY'].includes(event.status) && !event.bets.length && <TeamSizeForm key={`${event.id}:${size}`} eventId={event.id} playersPerTeam={size} teamCount={event.gameTemplate.teamCount} />}
           {event.description && <p className="whitespace-pre-wrap text-sm">{event.description}</p>}
           <div className="grid gap-3 sm:grid-cols-2">
             {event.teams.map((team) => <div key={team.id} className="rounded-md bg-card p-3">

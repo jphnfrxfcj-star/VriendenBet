@@ -6,14 +6,15 @@ const mocks = vi.hoisted(() => ({
   tx: {
     attribute: { findMany: vi.fn(), upsert: vi.fn() },
     event: { create: vi.fn(), findUniqueOrThrow: vi.fn(), update: vi.fn() },
-    eventTeam: { createMany: vi.fn() },
+    eventTeam: { createMany: vi.fn(), updateMany: vi.fn() },
+    gameTemplate: { create: vi.fn() },
     auditLog: { create: vi.fn() },
   },
 }))
 vi.mock('@/lib/auth', () => ({ requireRole: mocks.auth }))
 vi.mock('@/lib/prisma', () => ({ prisma: { $transaction: mocks.transaction } }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
-import { createWeekendGameAction, prepareWeekendGameAction } from '../app/admin/evenementen/actions'
+import { createWeekendGameAction, prepareWeekendGameAction, updateWeekendTeamSizeAction } from '../app/admin/evenementen/actions'
 
 function input() {
   const form = new FormData()
@@ -83,5 +84,43 @@ describe('Eenvoudig weekendspel', () => {
     mocks.tx.eventTeam.createMany.mockClear()
     await expect(prepareWeekendGameAction(form)).rejects.toThrow()
     expect(mocks.tx.eventTeam.createMany).not.toHaveBeenCalled()
+  })
+})
+
+
+describe('Aantal spelers aanpassen per spel', () => {
+  const existing = {
+    status: 'ODDS_READY', _count: { bets: 0 },
+    gameTemplate: { id: 'shared', name: 'Spel', format: 'TEAM', teamCount: 2, exactTeamSize: 4, maxPlayersPerTeam: 4,
+      defaultMargin: 0.1, defaultSensitivity: 1.25, attributes: [{ attributeId: 'kracht', weight: 1 }] },
+  }
+  function resize(size: string) { const form = new FormData(); form.set('id', 'spel'); form.set('playersPerTeam', size); return form }
+  it.each([1, 2, 3, 6])('wijzigt alleen dit spel naar %i spelers per team en wist verouderde odds', async (size) => {
+    mocks.tx.event.findUniqueOrThrow.mockResolvedValue(existing)
+    mocks.tx.gameTemplate.create.mockResolvedValue({ id: 'private' })
+    await updateWeekendTeamSizeAction(resize(String(size)))
+    expect(mocks.tx.gameTemplate.create).toHaveBeenCalledWith({ data: expect.objectContaining({ exactTeamSize: size, minPlayersPerTeam: size, maxPlayersPerTeam: size, attributes: { create: [{ attributeId: 'kracht', weight: 1 }] } }) })
+    expect(mocks.tx.event.update).toHaveBeenCalledWith({ where: { id: 'spel' }, data: { gameTemplateId: 'private', status: 'OPEN_FOR_SELECTION' } })
+    expect(mocks.tx.eventTeam.updateMany).toHaveBeenCalledWith({ where: { eventId: 'spel' }, data: expect.objectContaining({ finalOdds: null, calculatedOdds: null, overriddenOdds: null }) })
+    expect(mocks.transaction).toHaveBeenCalledWith(expect.any(Function), { isolationLevel: 'Serializable' })
+  })
+  it('laat dezelfde grootte ongemoeid', async () => {
+    mocks.tx.event.findUniqueOrThrow.mockResolvedValue(existing)
+    await updateWeekendTeamSizeAction(resize('4'))
+    expect(mocks.tx.gameTemplate.create).not.toHaveBeenCalled()
+    expect(mocks.tx.eventTeam.updateMany).not.toHaveBeenCalled()
+  })
+  it('weigert wijzigingen bij inzetten of gestarte spellen', async () => {
+    for (const changes of [{ _count: { bets: 1 } }, { status: 'BET_PLACED' }, { status: 'IN_PROGRESS' }, { status: 'SETTLED' }, { status: 'CANCELLED' }]) {
+      mocks.tx.event.findUniqueOrThrow.mockResolvedValue({ ...existing, ...changes })
+      await expect(updateWeekendTeamSizeAction(resize('3'))).rejects.toThrow()
+    }
+    expect(mocks.tx.gameTemplate.create).not.toHaveBeenCalled()
+  })
+  it('weigert ongeldige aantallen en onbevoegde gebruikers', async () => {
+    for (const size of ['0', '-1', '1.5', '', 'NaN', '51']) await expect(updateWeekendTeamSizeAction(resize(size))).rejects.toThrow()
+    mocks.auth.mockRejectedValue(new Error('Geen toegang'))
+    await expect(updateWeekendTeamSizeAction(resize('3'))).rejects.toThrow('Geen toegang')
+    expect(mocks.transaction).not.toHaveBeenCalled()
   })
 })

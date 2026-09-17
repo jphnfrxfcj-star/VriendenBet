@@ -280,6 +280,8 @@ model GameTemplateAttribute {
 }
 
 model Event {
+  sourceSuggestionId  String?            @unique
+  sourceSuggestion    GameSuggestion?    @relation(fields: [sourceSuggestionId], references: [id])
   id                  String             @id @default(cuid())
   gameTemplateId      String
   title               String
@@ -399,8 +401,9 @@ model WalletTransaction {
 }
 
 model GameSuggestion {
+  event                  Event?
   id                     String               @id @default(cuid())
-  submittedByUserId      String
+  submittedByUserId      String?
   title                  String
   description            String
   proposedRules          String?
@@ -412,7 +415,7 @@ model GameSuggestion {
   adminNotes             String?
   createdAt              DateTime             @default(now())
   updatedAt              DateTime             @updatedAt
-  submittedByUser        User                 @relation(fields: [submittedByUserId], references: [id])
+  submittedByUser        User?                @relation(fields: [submittedByUserId], references: [id])
 
   @@index([status])
 }

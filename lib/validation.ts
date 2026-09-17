@@ -20,12 +20,12 @@ const proposedAttributesSchema = z
 
 export const suggestionSchema = z
   .object({
-    title: z.string().min(3, 'Titel is verplicht').max(120),
-    description: z.string().min(10, 'Omschrijving is te kort').max(1500),
+    title: z.string().trim().min(1, 'Titel is verplicht').max(120),
+    description: z.string().trim().max(1500).optional().default(''),
     proposedRules: z.string().max(2500).optional(),
     proposedFormat: z.enum(['TEAM', 'INDIVIDUAL']).default('TEAM'),
     proposedTeamCount: z.coerce.number().int().min(2).max(8).optional(),
-    proposedPlayersPerTeam: z.coerce.number().int().min(1).max(12).optional(),
+    proposedPlayersPerTeam: z.coerce.number().int().min(1).max(50).optional(),
     proposedAttributes: proposedAttributesSchema,
   })
   .transform((value) => ({

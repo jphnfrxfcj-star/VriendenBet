@@ -12,13 +12,10 @@ export async function submitSuggestionAction(input: unknown) {
   }
 
   const session = await getSessionUser()
-  if (!session) {
-    return { ok: false, message: 'Log in om een spel voor te stellen' }
-  }
 
   await prisma.gameSuggestion.create({
     data: {
-      submittedByUserId: session.userId,
+      submittedByUserId: session?.userId,
       title: parsed.data.title,
       description: parsed.data.description,
       proposedRules: parsed.data.proposedRules,
@@ -32,5 +29,7 @@ export async function submitSuggestionAction(input: unknown) {
   })
 
   revalidatePath('/spel-voorstellen')
-  return { ok: true, message: 'Voorstel ingediend' }
+  revalidatePath('/admin/evenementen')
+  revalidatePath('/admin')
+  return { ok: true, message: 'Spelaanvraag ingediend' }
 }

@@ -1034,18 +1034,10 @@ export async function adjustWalletAction(formData: FormData) {
 }
 
 export async function updateSuggestionAction(formData: FormData) {
-  const session = await adminUser()
-  const id = value(formData, 'id')
-  const suggestion = await prisma.gameSuggestion.update({
-    where: { id },
-    data: {
-      status: value(formData, 'status') as 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'CONVERTED',
-      adminNotes: optionalValue(formData, 'adminNotes'),
-    },
-  })
-  await audit(session.userId, 'GAME_SUGGESTION_REVIEWED', 'GameSuggestion', suggestion.id, {
-    status: suggestion.status,
-  })
-  revalidatePath('/admin/voorstellen')
-  return
+  const { approveGameSuggestionAction, rejectGameSuggestionAction } = await import('./evenementen/suggestions')
+  const status = value(formData, 'status')
+  if (status === 'APPROVED' || status === 'CONVERTED') return approveGameSuggestionAction(formData)
+  if (status === 'REJECTED') return rejectGameSuggestionAction(formData)
+  await adminUser()
+  throw new Error('Beoordeel de aanvraag bij Spellen en aanvragen.')
 }

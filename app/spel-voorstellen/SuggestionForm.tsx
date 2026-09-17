@@ -1,152 +1,53 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { useForm } from 'react-hook-form'
-import { Plus, X } from 'lucide-react'
 import { submitSuggestionAction } from '@/app/actions/suggestions'
 import { Button } from '@/components/ui/button'
 import { Input, Textarea } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
-
-type SuggestionValues = {
-  title: string
-  description: string
-  proposedRules?: string
-  proposedFormat?: 'TEAM' | 'INDIVIDUAL'
-  proposedTeamCount?: number
-  proposedPlayersPerTeam?: number
-  proposedAttributes?: string[]
-}
 
 export function SuggestionForm({ attributeOptions }: { attributeOptions: string[] }) {
-  const [isPending, startTransition] = useTransition()
+  const [pending, startTransition] = useTransition()
   const [message, setMessage] = useState('')
-  const [selectedAttribute, setSelectedAttribute] = useState(attributeOptions[0] ?? '')
-  const [selectedAttributes, setSelectedAttributes] = useState<string[]>([])
-  const { register, handleSubmit, reset, watch } = useForm<SuggestionValues>({
-    defaultValues: { proposedFormat: 'TEAM', proposedTeamCount: 2, proposedPlayersPerTeam: 4 },
-  })
-  const format = watch('proposedFormat')
-  const isTeamGame = format !== 'INDIVIDUAL'
-  const availableAttributes = attributeOptions.filter((attribute) => !selectedAttributes.includes(attribute))
-
-  function onSubmit(values: SuggestionValues) {
-    const payload: SuggestionValues = {
-      ...values,
-      proposedTeamCount: isTeamGame ? Number(values.proposedTeamCount) : undefined,
-      proposedPlayersPerTeam: isTeamGame ? Number(values.proposedPlayersPerTeam) : undefined,
-      proposedAttributes: selectedAttributes,
-    }
-
+  const [teams, setTeams] = useState('2')
+  const [size, setSize] = useState('1')
+  return <form className="grid gap-4" onSubmit={(event) => {
+    event.preventDefault()
+    const form = event.currentTarget
+    const data = new FormData(form)
+    setMessage('')
     startTransition(async () => {
-      const result = await submitSuggestionAction(payload)
-      setMessage(result.message)
-      if (result.ok) {
-        reset()
-        setSelectedAttributes([])
-        setSelectedAttribute(attributeOptions[0] ?? '')
-      }
+      try {
+        const result = await submitSuggestionAction({
+          title: String(data.get('title') ?? ''), description: String(data.get('description') ?? ''),
+          proposedRules: String(data.get('proposedRules') ?? ''), proposedFormat: 'TEAM',
+          proposedTeamCount: Number(teams), proposedPlayersPerTeam: Number(size),
+          proposedAttributes: data.getAll('attribute'),
+        })
+        setMessage(result.message)
+        if (result.ok) { form.reset(); setTeams('2'); setSize('1') }
+      } catch { setMessage('Indienen is niet gelukt. Je invoer blijft staan; probeer opnieuw.') }
     })
-  }
-
-  function addAttribute() {
-    if (!selectedAttribute || selectedAttributes.includes(selectedAttribute)) return
-    setSelectedAttributes((current) => [...current, selectedAttribute])
-    setSelectedAttribute(availableAttributes.find((attribute) => attribute !== selectedAttribute) ?? '')
-  }
-
-  function removeAttribute(attribute: string) {
-    setSelectedAttributes((current) => current.filter((item) => item !== attribute))
-    if (!selectedAttribute) {
-      setSelectedAttribute(attribute)
-    }
-  }
-
-  return (
-    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
-      <label className="grid gap-2 text-sm font-black">
-        Titel
-        <Input {...register('title')} placeholder="Bijvoorbeeld: Nachtelijke penalty shoot-out" />
-      </label>
-      <label className="grid gap-2 text-sm font-black">
-        Omschrijving
-        <Textarea {...register('description')} placeholder="Wat is het idee en waarom wordt dit grappig?" />
-      </label>
-      <label className="grid gap-2 text-sm font-black">
-        Regels
-        <Textarea {...register('proposedRules')} placeholder="Korte spelregels" />
-      </label>
-      <div className="grid gap-3">
-        <div className={`grid gap-4 ${isTeamGame ? 'sm:grid-cols-3' : 'sm:grid-cols-[minmax(0,1fr)_2fr]'}`}>
-          <label className="grid gap-2 text-sm font-black">
-            Format
-            <Select {...register('proposedFormat')}>
-              <option value="TEAM">Teamspel</option>
-              <option value="INDIVIDUAL">Individueel</option>
-            </Select>
-          </label>
-          {isTeamGame ? (
-            <>
-              <label className="grid gap-2 text-sm font-black">
-                Teams
-                <Input type="number" min={2} max={8} {...register('proposedTeamCount')} />
-              </label>
-              <label className="grid gap-2 text-sm font-black">
-                Spelers/team
-                <Input type="number" min={1} max={12} {...register('proposedPlayersPerTeam')} />
-              </label>
-            </>
-          ) : null}
-        </div>
-        {!isTeamGame ? (
-          <p className="rounded-md border border-dashed p-3 text-sm font-bold text-muted-foreground">
-            Individueel spel: geen teaminfo nodig.
-          </p>
-        ) : null}
+  }}>
+    <fieldset disabled={pending} className="grid min-w-0 gap-4">
+      <label className="grid gap-2 text-sm font-bold">Naam van het spel<Input name="title" required maxLength={120} placeholder="Bijvoorbeeld: beerpong" /></label>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="grid gap-2 text-sm font-bold">Aantal teams<Input name="teamCount" type="number" min={2} max={8} required value={teams} onChange={(event) => setTeams(event.target.value)} /></label>
+        <label className="grid gap-2 text-sm font-bold">Spelers per team<Input name="playersPerTeam" type="number" min={1} max={50} required value={size} onChange={(event) => setSize(event.target.value)} /></label>
       </div>
-      <div className="grid gap-2 text-sm font-black">
-        Relevante eigenschappen
-        <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-          <Select value={selectedAttribute} onChange={(event) => setSelectedAttribute(event.target.value)}>
-            {availableAttributes.length ? (
-              availableAttributes.map((attribute) => (
-                <option key={attribute} value={attribute}>
-                  {attribute}
-                </option>
-              ))
-            ) : (
-              <option value="">Alle parameters gekozen</option>
-            )}
-          </Select>
-          <Button type="button" variant="secondary" onClick={addAttribute} disabled={!selectedAttribute}>
-            <Plus className="size-4" />
-            Toevoegen
-          </Button>
+      <p className="text-sm text-primary">{Number(teams) || 0} teams · {Number(size) || 0} spelers per team · {(Number(teams) || 0) * (Number(size) || 0)} spelers in totaal</p>
+      <details className="rounded-md border p-3">
+        <summary className="cursor-pointer text-sm font-bold">Omschrijving, regels en parameters (optioneel)</summary>
+        <div className="mt-3 grid gap-4">
+          <label className="grid gap-2 text-sm font-bold">Omschrijving (optioneel)<Textarea name="description" maxLength={1500} placeholder="Extra uitleg, als je wilt" /></label>
+          <label className="grid gap-2 text-sm font-bold">Regels (optioneel)<Textarea name="proposedRules" maxLength={2500} /></label>
+          {attributeOptions.length > 0 && <fieldset className="grid gap-2 sm:grid-cols-2">
+            <legend className="mb-2 text-sm font-bold">Parameters die meetellen (optioneel)</legend>
+            {attributeOptions.map((name) => <label key={name} className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" name="attribute" value={name} />{name}</label>)}
+          </fieldset>}
         </div>
-        {selectedAttributes.length ? (
-          <div className="flex flex-wrap gap-2">
-            {selectedAttributes.map((attribute) => (
-              <button
-                key={attribute}
-                type="button"
-                onClick={() => removeAttribute(attribute)}
-                className="inline-flex min-h-9 items-center gap-2 rounded-md bg-secondary px-3 text-xs font-black"
-              >
-                {attribute}
-                <X className="size-3.5" />
-              </button>
-            ))}
-          </div>
-        ) : (
-          <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
-            Kies minstens de parameters die volgens jou de odds moeten beïnvloeden.
-          </p>
-        )}
-      </div>
-      <Button type="submit" disabled={isPending}>
-        {isPending ? 'Indienen...' : 'Voorstel indienen'}
-      </Button>
-      {message ? <p className="rounded-md border bg-secondary p-3 text-sm font-bold">{message}</p> : null}
-    </form>
-  )
+      </details>
+      <Button type="submit">{pending ? 'Indienen…' : 'Spel aanvragen'}</Button>
+    </fieldset>
+    {message && <p role="status" className="rounded-md border p-3 text-sm">{message}</p>}
+  </form>
 }

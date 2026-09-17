@@ -21,6 +21,7 @@ export default async function WeekendGamesPage() {
         </p>
       </div>
 
+      {!events.length && <p className="rounded-md border p-4 text-sm text-muted-foreground">Er zijn nog geen spellen. <Link href="/spel-voorstellen" className="text-primary underline">Vraag een spel aan</Link>; na goedkeuring verschijnt het hier.</p>}
       <div className="grid gap-4 md:grid-cols-3">
         {events.map((event) => (
           <Link key={event.id} href={`/weekendspellen/${event.id}`}>
@@ -61,9 +62,7 @@ async function getWeekendEvents() {
     const events = await prisma.event.findMany({
       include: { teams: true },
       orderBy: [{ startsAt: 'asc' }, { createdAt: 'desc' }],
-      take: 12,
     })
-    if (!events.length) return weekendEvents
 
     return events.map((event) => ({
       id: event.id,
