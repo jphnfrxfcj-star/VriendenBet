@@ -1,4 +1,5 @@
 import { AdminForm } from '../AdminForm'
+import { DeleteButton } from '../DeleteButton'
 import Link from 'next/link'
 import { createAttributeAction, updateAttributeAction } from '../actions'
 import {
@@ -56,6 +57,7 @@ export default async function AdminAttributesPage() {
               <div className="grid content-end gap-2">
                 <CheckField name="isActive" label="Actief" defaultChecked={attribute.isActive} />
                 <SubmitButton>Opslaan</SubmitButton>
+                <DeleteButton kind="attribute" id={attribute.id} name={attribute.name} consequences="Deze parameter en de bijbehorende scores van alle deelnemers verdwijnen. Parameters die door spelconfiguraties gebruikt worden, blijven beschermd." />
               </div>
             </AdminForm>
           ))}

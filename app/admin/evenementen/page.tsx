@@ -1,4 +1,5 @@
 import { GameRequests } from './GameRequests'
+import { DeleteButton } from '../DeleteButton'
 import { TeamSizeForm } from './TeamSizeForm'
 import Link from 'next/link'
 import { AdminForm } from '../AdminForm'
@@ -90,6 +91,7 @@ export default async function AdminEventsPage() {
               <SubmitButton>Beschikbaarheid opslaan</SubmitButton>
             </AdminForm>
           </details>}
+          <DeleteButton kind="event" id={event.id} name={event.title} consequences="Het spel en de teamindeling verdwijnen. Een gekoppelde aanvraag wordt afgewezen. Spellen met weddenschappen kunnen niet worden verwijderd." />
           {event.bets.length > 0 && <details className="rounded-md border bg-background p-3">
             <summary className="cursor-pointer text-sm font-bold">{event.bets.length} weddenschappen bekijken</summary>
             <div className="mt-3 grid gap-2">{event.bets.map((bet) => <p key={bet.id} className="text-sm">{bet.mielUser.displayName} · {bet.selectedTeam.name} · {formatCredits(Number(bet.stake))} · @{formatOdd(Number(bet.oddsAtPlacement))}</p>)}</div>

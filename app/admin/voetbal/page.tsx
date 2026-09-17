@@ -1,4 +1,5 @@
 import { AdminForm } from '../AdminForm'
+import { DeleteButton } from '../DeleteButton'
 import {
   createFootballMarketAction,
   createFootballMatchAction,
@@ -160,12 +161,14 @@ export default async function AdminFootballPage() {
                     </div>
                   </div>
 
+                <DeleteButton kind="footballMatch" id={match.id} name={match.title} consequences="De match, markten en selecties verdwijnen. Gekoppelde weddenschappen blokkeren de verwijdering." />
                 {match.markets.map((market) => (
                   <div key={market.id} className="rounded-md border bg-background p-3">
                     <h3 className="font-black">
                       {market.title} <span className="text-sm text-muted-foreground">· {market.marketType} · {market.status}</span>
                     </h3>
                     <div className="mt-3 grid gap-3">
+                      <DeleteButton kind="footballMarket" id={market.id} name={market.title} consequences="De markt en alle selecties verdwijnen. Gekoppelde weddenschappen blokkeren de verwijdering." />
                       {market.selections.map((selection) => (
                         <div key={selection.id} className="grid gap-2 rounded-md bg-secondary p-3">
                           <AdminForm action={updateFootballSelectionAction} className="grid gap-3 sm:grid-cols-2">
@@ -186,6 +189,7 @@ export default async function AdminFootballPage() {
                               <SubmitButton>Opslaan</SubmitButton>
                             </div>
                           </AdminForm>
+                          <DeleteButton kind="footballSelection" id={selection.id} name={selection.label} consequences="Deze selectie verdwijnt. Gekoppelde weddenschappen blokkeren de verwijdering." />
                           <AdminForm action={overrideFootballSelectionOddsAction} className="grid gap-2 md:grid-cols-[140px_1fr_auto]">
                             <input type="hidden" name="id" value={selection.id} />
                             <Field

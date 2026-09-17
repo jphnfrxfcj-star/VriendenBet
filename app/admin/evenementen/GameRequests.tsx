@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { DeleteButton } from '../DeleteButton'
 import { prisma } from '@/lib/prisma'
 import { AdminForm } from '../AdminForm'
 import { AdminCard, Field, SubmitButton } from '../shared'
@@ -23,9 +24,10 @@ export async function GameRequests() {
             <SubmitButton>Goedkeuren en spel toevoegen</SubmitButton>
           </AdminForm>
           <AdminForm action={rejectGameSuggestionAction}><input type="hidden" name="id" value={request.id} /><SubmitButton>Afwijzen</SubmitButton></AdminForm>
+          <DeleteButton kind="suggestion" id={request.id} name={request.title} consequences="De aanvraag verdwijnt uit het overzicht." />
         </article>)}
         {handled.length > 0 && <details><summary className="cursor-pointer text-sm font-bold">Afgehandelde aanvragen ({handled.length})</summary>
-          <div className="mt-3 grid gap-2">{handled.map((request) => <p key={request.id} className="text-sm">{request.title} · {request.event ? <Link className="text-primary underline" href={`/weekendspellen/${request.event.id}`}>Goedgekeurd — bekijk spel</Link> : 'Afgewezen'}</p>)}</div>
+          <div className="mt-3 grid gap-2">{handled.map((request) => <div key={request.id} className="rounded-md border p-3"><p className="text-sm">{request.title} · {request.event ? <Link className="text-primary underline" href={`/weekendspellen/${request.event.id}`}>Goedgekeurd — bekijk spel</Link> : 'Afgewezen'}</p><DeleteButton kind="suggestion" id={request.id} name={request.title} consequences="De aanvraag verdwijnt. Aanvragen die nog aan een spel gekoppeld zijn, kunnen niet worden verwijderd." /></div>)}</div>
         </details>}
       </div>
     </AdminCard>

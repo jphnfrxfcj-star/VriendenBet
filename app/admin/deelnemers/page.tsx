@@ -1,5 +1,6 @@
 import { parameterName } from '@/lib/csv-import'
 import { AdminForm } from '../AdminForm'
+import { DeleteButton } from '../DeleteButton'
 import { SearchableList } from '../SearchableList'
 import { CsvImport } from './CsvImport'
 import {
@@ -73,6 +74,7 @@ export default async function AdminParticipantsPage() {
                   <div className="grid content-end gap-2">
                     <CheckField name="isActive" label="Actief" defaultChecked={participant.isActive} />
                     <SubmitButton>Profiel opslaan</SubmitButton>
+                    <DeleteButton kind="participant" id={participant.id} name={participant.name} consequences="De deelnemer en alle ratings verdwijnen. Deelnemers die aan accounts of spellen gekoppeld zijn, blijven beschermd." />
                   </div>
                 </AdminForm>
 
