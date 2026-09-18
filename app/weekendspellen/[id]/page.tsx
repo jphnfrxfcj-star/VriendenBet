@@ -1,5 +1,8 @@
 import { TeamSizeForm } from '@/app/admin/evenementen/TeamSizeForm'
 import { OddsOverrideForm } from '@/app/admin/evenementen/OddsOverrideForm'
+import { AdminForm } from '@/app/admin/AdminForm'
+import { openEventForBettingAction } from '@/app/admin/actions'
+import { SubmitButton } from '@/app/admin/shared'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { StatusBadge } from '@/components/StatusBadge'
@@ -42,6 +45,11 @@ export default async function WeekendGameDetailPage({ params }: { params: Promis
             <OddsOverrideForm teamId={team.id} odds={event.savedOdds[team.id]} finished={['SETTLED', 'CANCELLED'].includes(event.status)} />
           </div>)}
         </div>
+        {event.status === 'OPEN_FOR_SELECTION' && <AdminForm action={openEventForBettingAction} className="mt-4 grid gap-2">
+          <input type="hidden" name="id" value={event.id} />
+          <p className="text-sm text-muted-foreground">Na het controleren van de teams en odds moet je de inzetten nog openen. Daarna kan Miel zijn bet plaatsen.</p>
+          <SubmitButton disabled={event.teams.length !== event.teamCount || !event.teams.every((team) => team.memberParticipantIds.length === event.exactTeamSize && event.savedOdds[team.id] > 1)}>Open voor inzetten</SubmitButton>
+        </AdminForm>}
       </section>}
       <TeamBuilder
         initialTeams={initialTeams}
@@ -51,7 +59,7 @@ export default async function WeekendGameDetailPage({ params }: { params: Promis
         weights={event.dbBacked ? event.weights : tugOfWarWeights}
         status={event.status}
         role={session?.role}
-        mielParticipantId={event.mielParticipantId ?? 'p-18'}
+        mielParticipantId={event.mielParticipantId ?? (event.dbBacked ? undefined : 'p-18')}
         exactTeamSize={event.exactTeamSize}
         eventId={event.dbBacked ? event.id : undefined}
       />

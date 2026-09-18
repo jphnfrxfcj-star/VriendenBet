@@ -27,7 +27,7 @@ type TeamBuilderProps = {
   weights: Record<string, number>
   status: string
   role?: Role
-  mielParticipantId: string
+  mielParticipantId?: string
   exactTeamSize: number
   eventId?: string
 }
@@ -47,7 +47,7 @@ export function TeamBuilder({
   const router = useRouter()
   const [teams, setTeams] = useState<TeamInput[]>(initialTeams)
   const [stake, setStake] = useState(50)
-  const [selectedTeamId, setSelectedTeamId] = useState(initialTeams[0]?.id ?? '')
+  const [selectedTeamId, setSelectedTeamId] = useState(() => getEligibleSelectionsForMiel({ format: 'TEAM', teams: initialTeams }, mielParticipantId)[0] ?? '')
   const [ticket, setTicket] = useState<{ teamName: string; stake: number; odds: number; payout: number } | null>(null)
   const [message, setMessage] = useState('')
   const [isPending, startTransition] = useTransition()
@@ -99,6 +99,16 @@ export function TeamBuilder({
     eligibleTeamIds.includes(selectedTeamId) &&
     stake >= 10 &&
     stake <= 250
+
+  const blockedReason = ticket ? ''
+    : !mielMode ? 'Log in als Miel om een weddenschap te plaatsen.'
+    : status === 'OPEN_FOR_SELECTION' || status === 'DRAFT' ? 'De inzetten zijn nog gesloten. Een admin moet eerst op ‘Open voor inzetten’ klikken nadat de teams en odds klaar zijn.'
+    : status === 'BET_PLACED' ? 'Er is al een weddenschap geplaatst op dit spel.'
+    : status !== 'ODDS_READY' ? 'Dit spel staat niet open voor inzetten.'
+    : validationError ? 'De teams zijn nog niet volledig. Laat een admin de teamindeling controleren.'
+    : !selectedOdds ? 'Er zijn nog geen odds beschikbaar voor dit team.'
+    : !eligibleTeamIds.includes(selectedTeamId) ? 'Kies je eigen team. Je kunt niet inzetten op je eigen verlies.'
+    : !Number.isFinite(stake) || stake < 10 || stake > 250 ? 'Kies een inzet tussen €10 en €250.' : ''
 
   function addParticipant(teamId: string, participantId: string) {
     setTeams((current) =>
@@ -334,6 +344,7 @@ export function TeamBuilder({
               </button>
             ))}
             <Input
+              aria-label="Inzet in euro"
               type="number"
               min={10}
               max={250}
@@ -345,6 +356,7 @@ export function TeamBuilder({
               Mogelijke uitbetaling:
               <strong className="ml-2 text-primary">{formatCredits((selectedOdds?.finalOdds ?? 0) * stake)}</strong>
             </div>
+            {blockedReason && <p role="status" className="rounded-md border border-primary/40 bg-primary/10 p-3 text-sm">{blockedReason}</p>}
             <Button type="button" disabled={!canPlaceBet || isPending} onClick={placeBet}>
               <TicketCheck className="size-4" />
               {isPending ? 'Bet plaatsen...' : 'Plaats virtuele bet'}
