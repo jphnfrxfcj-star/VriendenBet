@@ -35,6 +35,7 @@ export default async function WeekendGameDetailPage({ params }: { params: Promis
       {session?.role === 'ADMIN' && event.dbBacked && event.canResize && <TeamSizeForm key={`${event.id}:${event.exactTeamSize}`} eventId={event.id} playersPerTeam={event.exactTeamSize} teamCount={event.teamCount} />}
       <TeamBuilder
         initialTeams={initialTeams}
+        savedOdds={event.savedOdds}
         participants={event.dbBacked ? event.participants : participants}
         participantRatings={event.dbBacked ? event.participantRatings : participantRatings}
         weights={event.dbBacked ? event.weights : tugOfWarWeights}
@@ -114,6 +115,7 @@ async function getWeekendEvent(id: string) {
         weights: Object.fromEntries(
           event.gameTemplate.attributes.map((row) => [row.attribute.name, Number(row.weight)]),
         ) as Record<string, number>,
+        savedOdds: Object.fromEntries(event.teams.filter((team) => team.finalOdds).map((team) => [team.id, Number(team.finalOdds)])),
         teams: event.teams.map((team) => ({
           id: team.id,
           name: team.name,
@@ -128,7 +130,7 @@ async function getWeekendEvent(id: string) {
   }
 
   const demoEvent = weekendEvents.find((item) => item.id === id)
-  return demoEvent ? { ...demoEvent, dbBacked: false, canResize: false, teamCount: 2, participants: [], participantRatings: [], weights: {} } : null
+  return demoEvent ? { ...demoEvent, savedOdds: {}, dbBacked: false, canResize: false, teamCount: 2, participants: [], participantRatings: [], weights: {} } : null
 }
 
 function createEmptyTeams(teamCount: number) {

@@ -605,13 +605,15 @@ export async function overrideEventTeamOddsAction(formData: FormData) {
   const session = await adminUser()
   const id = value(formData, 'id')
   const reason = value(formData, 'reason')
-  if (reason.length < 8) return
+  if (!reason) return { ok: false, message: 'Vul een reden in.' }
+  const overriddenOdds = Number(value(formData, 'overriddenOdds').replace(',', '.'))
+  if (!Number.isFinite(overriddenOdds) || overriddenOdds < 1.01 || overriddenOdds > 999999.99 || Math.abs(overriddenOdds * 100 - Math.round(overriddenOdds * 100)) > 0.000001) return { ok: false, message: 'Vul een odd tussen 1,01 en 999999,99 in, met maximaal twee decimalen.' }
 
-  const current = await prisma.eventTeam.findUniqueOrThrow({ where: { id } })
+  const current = await prisma.eventTeam.findUniqueOrThrow({ where: { id }, include: { event: true } })
+  if (['SETTLED', 'CANCELLED'].includes(current.event.status)) return { ok: false, message: 'Dit spel is al afgesloten.' }
   const originalOdds = current.calculatedOdds ?? current.finalOdds
-  if (!originalOdds) return
+  if (!originalOdds) return { ok: false, message: 'Sla eerst de volledige teams op om odds te berekenen.' }
 
-  const overriddenOdds = numberValue(formData, 'overriddenOdds')
   await prisma.$transaction([
     prisma.eventTeam.update({
       where: { id },
@@ -637,8 +639,8 @@ export async function overrideEventTeamOddsAction(formData: FormData) {
       },
     }),
   ])
-  revalidatePath('/admin/evenementen')
-  return
+  revalidatePath('/', 'layout')
+  return { ok: true, message: 'Odds aangepast voor nieuwe inzetten.' }
 }
 
 export async function settleEventAction(formData: FormData) {
@@ -871,11 +873,12 @@ export async function overrideFootballSelectionOddsAction(formData: FormData) {
   const session = await adminUser()
   const id = value(formData, 'id')
   const reason = value(formData, 'reason')
-  if (reason.length < 8) return
+  if (!reason) return { ok: false, message: 'Vul een reden in.' }
+  const overriddenOdds = Number(value(formData, 'overriddenOdds').replace(',', '.'))
+  if (!Number.isFinite(overriddenOdds) || overriddenOdds < 1.01 || overriddenOdds > 999999.99 || Math.abs(overriddenOdds * 100 - Math.round(overriddenOdds * 100)) > 0.000001) return { ok: false, message: 'Vul een odd tussen 1,01 en 999999,99 in, met maximaal twee decimalen.' }
 
   const current = await prisma.footballSelection.findUniqueOrThrow({ where: { id } })
   const originalOdds = current.calculatedOdds ?? current.finalOdds
-  const overriddenOdds = numberValue(formData, 'overriddenOdds')
   await prisma.$transaction([
     prisma.footballSelection.update({
       where: { id },
@@ -901,8 +904,8 @@ export async function overrideFootballSelectionOddsAction(formData: FormData) {
       },
     }),
   ])
-  revalidatePath('/admin/voetbal')
-  return
+  revalidatePath('/', 'layout')
+  return { ok: true, message: 'Odds aangepast voor nieuwe inzetten.' }
 }
 
 export async function settleFootballBetBuildersAction(formData: FormData) {

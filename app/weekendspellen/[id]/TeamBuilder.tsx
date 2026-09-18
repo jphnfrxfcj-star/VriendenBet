@@ -21,6 +21,7 @@ type ParticipantOption = {
 
 type TeamBuilderProps = {
   initialTeams: TeamInput[]
+  savedOdds?: Record<string, number>
   participants: ParticipantOption[]
   participantRatings: ParticipantRating[]
   weights: Record<string, number>
@@ -33,6 +34,7 @@ type TeamBuilderProps = {
 
 export function TeamBuilder({
   initialTeams,
+  savedOdds,
   participants,
   participantRatings,
   weights,
@@ -75,11 +77,13 @@ export function TeamBuilder({
     }
 
     try {
-      return calculateTeamOdds(teams, participantRatings, weights, {}, { margin: 0.1, sensitivity: 1.25 })
+      const calculated = calculateTeamOdds(teams, participantRatings, weights, {}, { margin: 0.1, sensitivity: 1.25 })
+      const unchanged = JSON.stringify(teams) === JSON.stringify(initialTeams)
+      return calculated.map((odd) => ({ ...odd, finalOdds: unchanged ? savedOdds?.[odd.teamId] ?? odd.finalOdds : odd.finalOdds }))
     } catch {
       return []
     }
-  }, [participantRatings, teams, validationError, weights])
+  }, [participantRatings, teams, validationError, weights, initialTeams, savedOdds])
 
   const eligibleTeamIds = useMemo(
     () => getEligibleSelectionsForMiel({ format: 'TEAM', teams }, mielParticipantId),
