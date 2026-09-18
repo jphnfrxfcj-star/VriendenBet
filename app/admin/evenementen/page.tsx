@@ -1,11 +1,12 @@
 import { GameRequests } from './GameRequests'
 import { DeleteButton } from '../DeleteButton'
 import { TeamSizeForm } from './TeamSizeForm'
+import { OddsOverrideForm } from './OddsOverrideForm'
 import Link from 'next/link'
 import { AdminForm } from '../AdminForm'
 import { SearchableList } from '../SearchableList'
-import { openEventForBettingAction, setEventParticipantsAction, settleEventAction, overrideEventTeamOddsAction } from '../actions'
-import { AdminCard, AdminPageShell, EmptyState, Field, SelectField, SubmitButton } from '../shared'
+import { openEventForBettingAction, setEventParticipantsAction, settleEventAction } from '../actions'
+import { AdminCard, AdminPageShell, EmptyState, SelectField, SubmitButton } from '../shared'
 import { StatusBadge } from '@/components/StatusBadge'
 import { prisma } from '@/lib/prisma'
 import { formatCredits, formatOdd } from '@/lib/utils'
@@ -50,16 +51,7 @@ export default async function AdminEventsPage() {
               <div className="flex items-center justify-between gap-2"><h3 className="font-bold">{team.name}</h3><span className="text-sm">{team.members.length}/{size}</span></div>
               <p className="mt-2 text-sm text-muted-foreground">{team.members.map((member) => member.participant.name).join(', ') || 'Nog geen spelers gekozen'}</p>
               {team.finalOdds && <p className="mt-2 text-sm font-bold text-primary">Odd {formatOdd(Number(team.finalOdds))}</p>}
-              {!finished && team.finalOdds && <details className="mt-3">
-                <summary className="min-h-11 cursor-pointer py-2 text-sm font-bold text-primary">Odds aanpassen</summary>
-                <AdminForm action={overrideEventTeamOddsAction} className="grid gap-3">
-                  <input type="hidden" name="id" value={team.id} />
-                  <Field name="overriddenOdds" label="Nieuwe odd" type="number" min={1.01} max={999999.99} step="0.01" defaultValue={String(team.finalOdds)} required />
-                  <Field name="reason" label="Reden" placeholder="Bijvoorbeeld: Correctie" required />
-                  <p className="text-xs text-muted-foreground">Geldt voor nieuwe inzetten. Bestaande weddenschappen behouden hun odd. Teams opnieuw opslaan berekent de odds opnieuw.</p>
-                  <SubmitButton>Odds opslaan</SubmitButton>
-                </AdminForm>
-              </details>}
+              <OddsOverrideForm teamId={team.id} odds={team.finalOdds ? Number(team.finalOdds) : undefined} finished={finished} />
             </div>)}
           </div>
           <div className="flex flex-wrap items-center gap-3">

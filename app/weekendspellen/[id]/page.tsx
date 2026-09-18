@@ -1,4 +1,5 @@
 import { TeamSizeForm } from '@/app/admin/evenementen/TeamSizeForm'
+import { OddsOverrideForm } from '@/app/admin/evenementen/OddsOverrideForm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { StatusBadge } from '@/components/StatusBadge'
@@ -33,6 +34,15 @@ export default async function WeekendGameDetailPage({ params }: { params: Promis
 
       {session?.role === 'ADMIN' && <Link href="/admin/evenementen" className="font-bold text-primary underline">← Terug naar spelbeheer</Link>}
       {session?.role === 'ADMIN' && event.dbBacked && event.canResize && <TeamSizeForm key={`${event.id}:${event.exactTeamSize}`} eventId={event.id} playersPerTeam={event.exactTeamSize} teamCount={event.teamCount} />}
+      {session?.role === 'ADMIN' && event.dbBacked && <section aria-label="Odds beheren" className="rounded-lg border bg-card p-4">
+        <h2 className="text-lg font-black">Odds beheren · Admin</h2>
+        <div className="mt-3 grid gap-4 sm:grid-cols-2">
+          {event.teams.map((team) => <div key={team.id} className="rounded-md bg-secondary p-3">
+            <h3 className="font-black">{team.name}</h3>
+            <OddsOverrideForm teamId={team.id} odds={event.savedOdds[team.id]} finished={['SETTLED', 'CANCELLED'].includes(event.status)} />
+          </div>)}
+        </div>
+      </section>}
       <TeamBuilder
         initialTeams={initialTeams}
         savedOdds={event.savedOdds}
@@ -130,7 +140,7 @@ async function getWeekendEvent(id: string) {
   }
 
   const demoEvent = weekendEvents.find((item) => item.id === id)
-  return demoEvent ? { ...demoEvent, savedOdds: {}, dbBacked: false, canResize: false, teamCount: 2, participants: [], participantRatings: [], weights: {} } : null
+  return demoEvent ? { ...demoEvent, savedOdds: {} as Record<string, number>, dbBacked: false, canResize: false, teamCount: 2, participants: [], participantRatings: [], weights: {} } : null
 }
 
 function createEmptyTeams(teamCount: number) {
