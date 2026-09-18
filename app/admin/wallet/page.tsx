@@ -35,8 +35,8 @@ export default async function AdminWalletPage() {
                 { value: 'BONUS', label: 'Bonus' },
               ]}
             />
-            <Field name="amount" label="Bedrag" type="number" step="1" required />
-            <Field name="reason" label="Reden" placeholder="Verplicht" required />
+            <Field name="amount" label="Bedrag (+ toevoegen / − aftrekken)" type="number" step="0.01" required />
+            <Field name="reason" label="Reden" placeholder="Bijvoorbeeld: Bonus" required />
             <div className="md:col-span-2">
               <SubmitButton>Saldo aanpassen</SubmitButton>
             </div>

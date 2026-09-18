@@ -19,8 +19,13 @@ export function AdminForm({ action, children, ...props }: Props) {
     setMessage(''); setFailed(false)
     startTransition(async () => {
       try {
-        await action(data)
-        setMessage('Gelukt.')
+        const result = await action(data)
+        if (result && typeof result === 'object' && 'ok' in result && 'message' in result && typeof result.message === 'string') {
+          setFailed(result.ok === false)
+          setMessage(result.message)
+        } else {
+          setMessage('Gelukt.')
+        }
       } catch {
         setFailed(true)
         setMessage('Opslaan is niet gelukt. Controleer je invoer en probeer opnieuw. Je wijzigingen staan nog in het formulier.')

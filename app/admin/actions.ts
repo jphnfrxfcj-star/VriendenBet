@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/lib/auth'
 import { hashPin } from '@/lib/pin'
@@ -998,18 +999,24 @@ export async function settleFootballBetBuildersAction(formData: FormData) {
 export async function adjustWalletAction(formData: FormData) {
   const session = await adminUser()
   const walletId = value(formData, 'walletId')
-  const amount = numberValue(formData, 'amount', 0)
+  const rawAmount = value(formData, 'amount').replace(',', '.')
   const reason = value(formData, 'reason')
-  const type = value(formData, 'type') as 'ADMIN_ADJUSTMENT' | 'BONUS'
-  if (reason.length < 8) return
+  const type = value(formData, 'type')
+  if (!walletId) return { ok: false, message: 'Kies een wallet.' }
+  if (!reason) return { ok: false, message: 'Vul een reden in, bijvoorbeeld Bonus.' }
+  if (type !== 'ADMIN_ADJUSTMENT' && type !== 'BONUS') return { ok: false, message: 'Kies Correctie of Bonus.' }
+  if (!/^-?\d{1,8}(\.\d{1,2})?$/.test(rawAmount)) return { ok: false, message: 'Vul een geldig bedrag in met maximaal twee decimalen.' }
+  const amount = new Prisma.Decimal(rawAmount)
+  if (amount.isZero()) return { ok: false, message: 'Het bedrag moet verschillen van nul.' }
+  if (type === 'BONUS' && amount.isNegative()) return { ok: false, message: 'Een bonus moet positief zijn. Kies Correctie om geld af te trekken.' }
 
-  await prisma.$transaction(async (tx) => {
-    const wallet = await tx.wallet.findUniqueOrThrow({ where: { id: walletId } })
-    const nextBalance = wallet.balance.plus(amount)
-    if (nextBalance.isNegative()) {
-      throw new Error('Saldo mag niet negatief worden')
-    }
-    await tx.wallet.update({ where: { id: walletId }, data: { balance: nextBalance } })
+  const adjusted = await prisma.$transaction(async (tx) => {
+    // Atomic increment prevents a simultaneous bet or adjustment being overwritten.
+    const updated = await tx.wallet.updateMany({
+      where: { id: walletId, balance: { gte: amount.isNegative() ? amount.negated() : 0, lte: new Prisma.Decimal('99999999.99').minus(amount) } },
+      data: { balance: { increment: amount } },
+    })
+    if (!updated.count) return false
     await tx.walletTransaction.create({
       data: {
         walletId,
@@ -1024,13 +1031,14 @@ export async function adjustWalletAction(formData: FormData) {
         action: 'WALLET_ADJUSTMENT',
         entityType: 'Wallet',
         entityId: walletId,
-        metadataJson: { amount, reason, type },
+        metadataJson: { amount: amount.toString(), reason, type },
       },
     })
+    return true
   })
-  revalidatePath('/admin/wallet')
-  revalidatePath('/admin')
-  return
+  if (!adjusted) return { ok: false, message: 'Saldo niet aangepast: de wallet bestaat niet meer, het saldo is onvoldoende of het maximumbedrag wordt overschreden.' }
+  revalidatePath('/', 'layout')
+  return { ok: true, message: amount.isPositive() ? 'Geld toegevoegd. Het saldo is bijgewerkt.' : 'Geld afgetrokken. Het saldo is bijgewerkt.' }
 }
 
 export async function updateSuggestionAction(formData: FormData) {
